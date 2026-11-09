@@ -18,6 +18,7 @@ import {
   dmNotesFor,
   chronicleFor,
   locationsFor,
+  mentionedIn,
   npcMemoriesFor,
   npcsFor,
   readersOf
@@ -90,6 +91,19 @@ export async function playTurn({
   const readers = readersOf(audience, players);
   const characterNames = players.map(p => p.character_name);
 
+  // What the current scene is about (D-016, D-017): only NPCs and places
+  // mentioned here reach the prompt. The checkpoint contributes its current
+  // location, scene and party, not its whole event list.
+  const checkpoint = state.checkpoint || {};
+  const sceneText = [
+    prompt,
+    ...history.map(m => m.content),
+    ...sharedHistory.map(m => m.content),
+    checkpoint.location,
+    checkpoint.scene,
+    ...(checkpoint.party_npcs || []).map(n => n?.name)
+  ].filter(Boolean).join('\n');
+
   const instructions = buildDmInstructions({
     channelId,
     audience,
@@ -99,24 +113,20 @@ export async function playTurn({
     legacyCheckpoint,
     characterKnowledge: characterKnowledgeFor(state.character_knowledge, audience),
     dmNotes: dmNotesFor(state.dm_notes, readers, characterNames),
-    npcs: npcsFor(state.npcs, readers, characterNames, { includeAuthorNotes: true }),
-    locations: locationsFor(state.locations, readers, characterNames, { includeAuthorNotes: true }),
+    npcs: mentionedIn(
+      npcsFor(state.npcs, readers, characterNames, { includeAuthorNotes: true }),
+      sceneText
+    ),
+    locations: mentionedIn(
+      locationsFor(state.locations, readers, characterNames, { includeAuthorNotes: true }),
+      sceneText
+    ),
     chronicle: chronicleFor(state.chronicle, readers),
     recentSharedScene: sharedHistory.length
       ? formatSharedTranscript(sharedHistory)
       : null,
     // NPCs mentioned in the message, recent history or scene (D-016).
-    npcMemories: npcMemoriesFor(
-      state.npcs,
-      audience,
-      readers,
-      [
-        prompt,
-        ...history.map(m => m.content),
-        ...sharedHistory.map(m => m.content),
-        JSON.stringify(state.checkpoint || {})
-      ].join('\n')
-    ),
+    npcMemories: npcMemoriesFor(state.npcs, audience, readers, sceneText),
     testMode
   });
 

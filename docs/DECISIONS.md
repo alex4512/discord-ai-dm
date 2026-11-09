@@ -534,3 +534,22 @@ reused.
 - Logic tests: append-only merge with author notes kept, per-channel filtering (secret excluded in main, included in private), mention matching (title words, short names, no substring matches). 10/10 passed.
 - Real model, placeholder NPC: in a shared scene the NPC recalled a non-secret memory out loud and never the secret (2/2). In the private channel it spoke discreetly about the secret (2/2).
 - Real save on live data (rolled back): memories backfilled for Orren, Voss, Varek and Mother Vael (secret) after the backfill instruction was strengthened (only Brann, Derren and the stranger before). All five save calls were well within their caps.
+
+## D-017: Bounded prompt size: compaction at save, scene-relevant registries
+
+**Date:** 2026-11-09 · **Status:** accepted (user chose options 1 and 2; rejected a persistent typing indicator and shorter narration) · **Code:** `SIZE_BUDGETS` and `compaction()` in `src/ai/prompts.js`, `sizeBudget()` in `src/services/checkpointService.js`, `mentionedIn()` in `src/services/audience.js`, `sceneText` in `src/services/dungeonMasterService.js`
+
+**Context.** Replies felt slower as the campaign went on. A rough analysis (2026-11-09) found:
+- Database work is negligible (7–60 ms per turn), and message history is capped and resets at each save. Neither was the problem.
+- The saved records sent with every reply grew at every save, because the instructions said to keep everything: character knowledge 20–23k chars, DM notes 19–29k, shared checkpoint 13k, NPCs and places 13–15k. Prompts reached 17k tokens in main and 23–25k in the private channels.
+- A short reply took about 5 s (mostly a fixed model overhead; OpenAI already caches 90%+ of the prompt). Narration adds about 6–10 s, and fights add 1–2 sequential tool calls for monster dice (D-013).
+
+**Decision.**
+1. **Compaction at save.** The shared checkpoint, each character record and the DM notes each have a size budget (6,000 / 8,000 / 10,000 chars). Each generator gets `size_budget: { previous_chars, max_chars }` and is told to compact at every save, harder when over budget: merge overlapping entries, summarize older or resolved items into short lines, drop superseded details. It must never drop secrets and who knows them, open objectives and mysteries, or relationships. **DM-notes entries are merged only when their known_by lists are identical**, so compaction cannot widen who knows a secret.
+2. **Scene-relevant registries.** A DM reply gets only the NPCs and places mentioned in the current message, the channel's recent history, the recent main play (private channels) or the checkpoint's current location, scene and party. It uses the same whole-word matching as NPC memories (D-016). `/npc` and `/location` commands are unchanged and still list everything known.
+
+**Measured (2026-11-09, real save on live data, rolled back).**
+- **Records:** checkpoint 12.8k → 7.1k chars; Kraavok's knowledge 20.2k → 9.9k; Looming Shade's knowledge 23.4k → 8.2k; DM notes 28.9k → 10.5k.
+- **Privacy preserved:** Kraavok-only secrets 8 → 8; Looming-only secrets 2 → 1 (two merged, same known_by); no entry moved to a wider known_by.
+- **Prompt per reply:** main 17k → 9k tokens; Kraavok's channel 25k → 13k; Looming's channel 23k → 11k. The NPC block went from about 9–11k chars to about 2k (only the NPCs in the scene).
+- **Latency:** a short reply went from 5.2 s to 4.8 s. The gain per reply is modest because the fixed model overhead dominates. The main effect is that prompts **stop growing**, so replies no longer slow down as the campaign goes on. The remaining levers (narration length, monster-dice rounds, model choice) were not taken.

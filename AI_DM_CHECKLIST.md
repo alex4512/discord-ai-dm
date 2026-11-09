@@ -113,6 +113,7 @@
 - [x] Per-guild in-process concurrency guard
 - [x] Database migrations and `dnd_bot` permissions applied — tracked in `migrations/`, `npm run migrate`
 - [ ] OpenAI token usage and cost tracking (`api_usage` table exists)
+- [x] Prompt size kept bounded: saves compact records to size budgets; DM replies get only the NPCs and places of the current scene (D-017)
 - [x] Checkpoint save output cap raised to 12000 tokens (`CHECKPOINT_MAX_OUTPUT_TOKENS`); a truncated response gives a clear error and saves nothing
 - [x] Short `/checkpoint save` replies in the game channel ("Saving…", then "Saved as vN")
 - [x] Scene images: on first arrival + `/image`, per-server daily cap, every generation logged (D-008)

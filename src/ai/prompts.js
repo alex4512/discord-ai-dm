@@ -111,6 +111,30 @@ Do not claim to have changed the database.
 Reply in the player's language.
 `;
 
+// D-017: saved records are sent with every DM reply, so they must not grow
+// without bound. Each save compacts them to a size budget.
+export const SIZE_BUDGETS = Object.freeze({
+  checkpoint: 6000,
+  character_knowledge: 8000,
+  dm_notes: 10000
+});
+
+const compaction = (record, max, { tagged = false } = {}) => `
+SIZE BUDGET: keep the whole ${record} JSON under about ${max} characters.
+size_budget in the input gives the previous record's size. Compact on every
+save, harder when over budget:
+- merge related or overlapping entries into one; never repeat a fact in
+  several lists;
+- summarize older, minor or resolved items into a few short lines
+  (e.g. "Earlier: ...");
+- drop details superseded by later events, resolved threads and stale notes.
+Never drop: secrets and who knows them, open objectives and mysteries,
+relationships, and anything that still affects the story.${tagged ? `
+Only merge entries whose known_by lists are identical; otherwise keep them
+separate.` : ''}
+Keep entries short: one or two sentences each.
+`;
+
 export const CHECKPOINT_INSTRUCTIONS = `
 Create a shared D&D 5e 2014 RAW campaign checkpoint.
 
@@ -142,6 +166,7 @@ state that explicitly.
 Never record a player character's class, level or other game
 statistics; describe only what others can see in the world.
 
+${compaction('shared checkpoint', SIZE_BUDGETS.checkpoint)}
 Do not advance the adventure.
 Return only JSON matching the required schema.
 `;
@@ -158,7 +183,9 @@ witnessed, was told in-world, or reasonably deduced:
 - the character's own private-channel history.
 
 Keep everything from the previous record that is still true.
-Update what changed. Remove nothing without a reason in history.
+Update what changed. Remove nothing without a reason in history
+(compacting to the size budget below is such a reason, but secrets,
+relationships and open objectives are always kept).
 Stay concise: merge duplicate or overlapping entries into one, and keep
 each entry to one or two sentences. Never repeat a fact in several lists.
 
@@ -173,6 +200,7 @@ Mark uncertain details as uncertain; do not treat them as shared canon.
 Do not invent facts, player decisions, inventory,
 hit points, dice results or story outcomes.
 
+${compaction('character record', SIZE_BUDGETS.character_knowledge)}
 Do not advance the adventure.
 Return only JSON matching the required schema.
 `;
@@ -219,6 +247,7 @@ Keep still-valid entries from the previous notes. Update what changed.
 Do not invent facts, player decisions, dice results or outcomes
 beyond what the supplied history supports.
 
+${compaction('DM notes', SIZE_BUDGETS.dm_notes, { tagged: true })}
 Do not advance the adventure.
 Return only JSON matching the required schema.
 `;
@@ -376,10 +405,14 @@ export function buildDmInstructions({
     );
   }
 
-  blocks.push(`NPCS:\n${JSON.stringify(npcs)}`);
+  // D-017: only the NPCs and places of the current scene are passed.
+  blocks.push(
+    'NPCS (those in the current scene; others exist and appear when mentioned):\n' +
+    JSON.stringify(npcs)
+  );
 
   if (locations && Object.keys(locations).length) {
-    blocks.push(`LOCATIONS:\n${JSON.stringify(locations)}`);
+    blocks.push(`LOCATIONS (those in the current scene):\n${JSON.stringify(locations)}`);
   }
 
   if (chronicle?.length) {

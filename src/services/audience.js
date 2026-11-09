@@ -173,6 +173,17 @@ function mentions(text, name) {
 }
 
 /**
+ * Keeps only registry entries mentioned in `sceneText` (D-017): a DM reply
+ * gets the NPCs and places of the current scene, not the whole registry.
+ */
+export function mentionedIn(entries, sceneText) {
+  const text = String(sceneText || '');
+  return Object.fromEntries(
+    Object.entries(entries || {}).filter(([key, entry]) => mentions(text, entry?.name || key))
+  );
+}
+
+/**
  * NPC memories for a DM reply prompt (D-016): for each NPC mentioned in
  * `sceneText` (current message, recent history, scene), what it remembers
  * about the characters reading this channel.

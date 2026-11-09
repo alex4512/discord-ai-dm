@@ -20,9 +20,17 @@ import {
 import { chronicleFor, locationsFor, npcsFor } from './audience.js';
 import { appendChronicle, mergeUpdate } from './registry.js';
 import { toSnapshot } from '../db/partitions.js';
-import { toCharacterSummary } from '../ai/prompts.js';
+import { SIZE_BUDGETS, toCharacterSummary } from '../ai/prompts.js';
 import { getCampaignLegacyCheckpoint } from './campaignService.js';
 import { foldProgress, withXpLevels } from './progressService.js';
+
+/** Previous size vs budget for one record (D-017). */
+function sizeBudget(record, previousValue) {
+  return {
+    previous_chars: previousValue ? JSON.stringify(previousValue).length : 0,
+    max_chars: SIZE_BUDGETS[record]
+  };
+}
 
 /** Private channels joined with the registered player who owns each. */
 function getPrivateScopes(players) {
@@ -147,7 +155,8 @@ export async function saveCheckpoint({ guildId, authorId }) {
     legacy_kraavok: isFirstVersion ? legacy : null,
     active_main_history: mainHistory,
     players: playerNames,
-    world_known_to_everyone: worldKnownTo(characterNames)
+    world_known_to_everyone: worldKnownTo(characterNames),
+    size_budget: sizeBudget('checkpoint', previous.checkpoint)
   });
 
   const characterTasks = activeScopes.map(async scope => [
@@ -159,7 +168,8 @@ export async function saveCheckpoint({ guildId, authorId }) {
       shared_checkpoint: isFirstVersion ? null : previous.checkpoint,
       main_adventure_history: mainHistory,
       own_private_history: scope.history,
-      world_known_to_character: worldKnownTo([scope.name])
+      world_known_to_character: worldKnownTo([scope.name]),
+      size_budget: sizeBudget('character_knowledge', scope.previousKnowledge)
     })
   ]);
 
@@ -175,7 +185,8 @@ export async function saveCheckpoint({ guildId, authorId }) {
     players: playerSummaries,
     npc_registry: previous.npcs,
     location_registry: previous.locations,
-    recent_events: chronicleFor(previous.chronicle, null)
+    recent_events: chronicleFor(previous.chronicle, null),
+    size_budget: sizeBudget('dm_notes', previous.dm_notes)
   });
 
   const worldTask = generateWorldUpdate({
