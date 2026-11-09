@@ -37,16 +37,18 @@ CAMPAIGN MEMORY RULES:
 10. observable_world_state is how the world physically is now,
    even if it changed off-screen. Describe it naturally when a
    character perceives that place. Never explain who caused it.
-11. NPCS: role/appearance/personality are how anyone meeting them
-   perceives them. status/location/facts are what the characters in
-   this channel know. author_notes are DM-only truth for playing the
-   NPC consistently; never state them to players.
+11. NPCS and LOCATIONS: role/appearance/personality/description are
+   how anyone meeting them perceives them. status/location/state/facts
+   are what the characters in this channel know. author_notes are
+   DM-only truth for playing them consistently; never state them.
 12. In a shared channel you only see what everyone may know.
    Characters may know more privately. Never claim a character does
    NOT know something; say it hasn't come up in shared play, and that
    the player can ask in their private channel or share it in-game.
 13. Never mention checkpoints, registries, records, entries or other
    bookkeeping. Speak about the world, or plainly out-of-character.
+14. The CHRONICLE lists established past events known in this channel.
+   Treat them as canon and stay consistent with them.
 
 For OOC questions, answer without advancing the narrative.
 
@@ -161,39 +163,51 @@ Do not advance the adventure.
 Return only JSON matching the required schema.
 `;
 
-export const NPC_UPDATE_INSTRUCTIONS = `
-Update the non-player character (NPC) registry of a shared
-D&D 5e 2014 RAW campaign.
+export const WORLD_UPDATE_INSTRUCTIONS = `
+Update the persistent world records of a shared D&D 5e 2014 RAW campaign:
+the NPC registry, the location registry and the event chronicle.
 
 Only active timeline events are valid.
 
-You receive the previous NPC registry (including DM-authored
-author_notes, which are authoritative truth), every channel's history
-since the last checkpoint and the DM notes.
+You receive the previous registries (including DM-authored author_notes,
+which are authoritative truth), the most recent chronicle entries, every
+channel's history since the last checkpoint and the DM notes.
 
-Return the COMPLETE registry: every previous NPC (unchanged if nothing
-happened to them) plus any NPC newly introduced in play.
-Use exactly the same name for an NPC as before.
+npcs and locations: return the COMPLETE registry, i.e. every previous
+entry (unchanged if nothing happened to it) plus any newly introduced in
+play. Use exactly the same name as before.
 
-Field rules:
+NPC fields:
 - role, appearance, personality: only what anyone meeting the NPC would
   perceive or commonly hear. Never mention a player character, a secret,
   or anything learned privately. Empty string if unknown.
 - status (alive, dead, missing, hostile, captured, ...) and location:
   the current truth, with known_by = exactly the player characters who
   know it through play. Pure DM truth no character knows: known_by [].
-- facts: things about the NPC learned in play, each with known_by =
-  exactly the characters who learned it. A fact from a private channel
-  is known only by that character. Keep every still-true previous fact.
+- facts: things about the NPC learned in play, each with known_by.
 
-Respect author_notes: never contradict them; you may not copy them into
-facts unless a character actually learned them in play.
+Location fields:
+- description: what anyone arriving there would perceive. Never mention
+  a player character, a secret, or anything learned privately.
+- state (intact, collapsed, flooded, guarded, abandoned, ...): the current
+  truth, with known_by = the characters who know it.
+- facts: things about the place learned in play, each with known_by.
 
-Use the registered character names exactly. When unsure who knows
-something, leave the character out.
+events: ONLY events that happened in the supplied history since the last
+checkpoint, never ones already in the chronicle. One short sentence each,
+with location (empty string if unknown) and known_by = the characters who
+witnessed, did or were told about it. A private-channel event is known
+only by that character.
 
-Do not invent NPCs, facts or outcomes beyond what history supports.
-Do not advance the adventure.
+For every known_by: a fact from a private channel is known only by that
+character. Use the registered character names exactly. When unsure who
+knows something, leave the character out.
+
+Respect author_notes: never contradict them; never copy them into facts
+or events unless a character actually learned them in play.
+
+Do not invent NPCs, places, facts, events or outcomes beyond what history
+supports. Do not advance the adventure.
 Return only JSON matching the required schema.
 `;
 
@@ -246,6 +260,8 @@ export function buildDmInstructions({
   characterKnowledge,
   dmNotes,
   npcs,
+  locations,
+  chronicle,
   testMode
 }) {
   const hasSavedCheckpoint = state.version > 0;
@@ -285,6 +301,17 @@ export function buildDmInstructions({
   }
 
   blocks.push(`NPCS:\n${JSON.stringify(npcs)}`);
+
+  if (locations && Object.keys(locations).length) {
+    blocks.push(`LOCATIONS:\n${JSON.stringify(locations)}`);
+  }
+
+  if (chronicle?.length) {
+    blocks.push(
+      'CHRONICLE (established past events known in this channel, oldest first):\n' +
+      chronicle.map(e => `- ${e.event}${e.location ? ` [${e.location}]` : ''}`).join('\n')
+    );
+  }
 
   if (testMode) blocks.push(TEST_MODE_BLOCK);
 

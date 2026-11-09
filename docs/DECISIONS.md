@@ -239,7 +239,7 @@ world, and the shared checkpoint picks them up once they're perceived in
 
 ## D-007: NPCs as a versioned checkpoint partition, filtered per audience
 
-**Date:** 2026-11-09 · **Status:** accepted, **revised same day** (see *Revision*) · **Migration:** `0004_npc_partition.sql` · **Code:** `src/services/npcService.js`, `npcRegistry.js`, `audience.js`
+**Date:** 2026-11-09 · **Status:** accepted, **revised same day** (see *Revision*) · **Migration:** `0004_npc_partition.sql` · **Code:** `src/services/worldService.js`, `registry.js`, `audience.js` (originally `npcService.js` / `npcRegistry.js`, generalized for D-009)
 
 **Context.** The `campaign_npcs` table was empty, unversioned (a rollback
 wouldn't restore NPC state) and went into every prompt whole, including
@@ -259,7 +259,7 @@ so they are saved and rolled back with everything else (D-001). Each record:
   list. Code merges it: `author_notes` are always carried over (the model's
   schema can't write them), and NPCs the model omits are kept, never
   silently deleted.
-- `/npc note <name>: <text>` (`#dm-testing` only) and `scripts/import-npcs.js`
+- `/npc note <name>: <text>` (`#dm-testing` only) and `scripts/import-world.js` (originally `import-npcs.js`)
   append a new checkpoint version on the same timeline (boundary kept),
   so DM edits are rolled back like play. A pending draft becomes stale and
   must be saved again.
@@ -325,3 +325,45 @@ the shared group hasn't met don't exist for `#main-adventure`:
 Alternatives considered and deferred: (B) show unmet NPCs' public face
 (role, appearance, personality) in shared channels; (C) per-NPC memory, so an
 NPC can bring up past events with a character in-world.
+
+---
+
+## D-009: Locations registry and append-only chronicle
+
+**Date:** 2026-11-09 · **Status:** accepted · **Migration:** `0005_locations_chronicle.sql` · **Code:** `src/services/registry.js`, `worldService.js`, `audience.js`
+
+**Context.** Places existed only as prose inside checkpoints and DM notes.
+The shared checkpoint is re-summarized at every save, so old events can
+quietly drop out of it.
+
+**Decision.**
+- **Locations** are a registry partition with the same rules as NPCs (D-007
+  and its revision): `description` is shared perception (name-guarded),
+  `state` and `facts` are tagged with `known_by`, and `author_notes` are
+  DM-only. A player audience sees a place only once every reader knows
+  something about it.
+- **Chronicle** is an append-only partition: `[{ event, location, known_by,
+  version }]`. Entries are never rewritten. `version` is the checkpoint that
+  added them (0 = imported history from before the shared campaign).
+- **One world-update call** at `/checkpoint save` replaces the NPC update. It
+  returns the complete NPC and location registries plus only the *new*
+  events. That keeps the number of AI calls the same as before. Code merges
+  it: author notes are always carried over (the model's schema can't write
+  them), omitted entries are kept, and duplicate events are skipped.
+- **Prompts.** Each DM reply gets the locations and the most recent 30
+  chronicle events its channel's readers may know. Summarizer inputs get the
+  same views without author notes. The world-update and DM-notes calls see
+  everything.
+- **Commands.** `/location list|show|note` (same as `/npc`) and
+  `/chronicle` (the last 20 events this channel may know).
+- **Import.** `scripts/import-world.js` takes
+  `{ npcs, locations, chronicle }` from a gitignored `data/*.local.json`.
+
+**Consequences.** Today `#main-adventure` knows only Dunmere and no events.
+Kraavok's channel knows his places and his legacy events. Everything else
+joins a channel as the characters learn it in play.
+
+**Pitfall found while building this.** node-pg sends JavaScript arrays as
+Postgres arrays, not JSON, so the chronicle failed to save. All partitions
+are now serialized with `JSON.stringify` explicitly
+(`src/db/partitions.js`).

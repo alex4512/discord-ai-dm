@@ -8,6 +8,8 @@ import {
   audienceForChannel,
   characterKnowledgeFor,
   dmNotesFor,
+  chronicleFor,
+  locationsFor,
   npcsFor,
   readersOf
 } from './audience.js';
@@ -60,6 +62,8 @@ export async function playTurn({
     characterKnowledge: characterKnowledgeFor(state.character_knowledge, audience),
     dmNotes: dmNotesFor(state.dm_notes, readers, characterNames),
     npcs: npcsFor(state.npcs, readers, characterNames, { includeAuthorNotes: true }),
+    locations: locationsFor(state.locations, readers, characterNames, { includeAuthorNotes: true }),
+    chronicle: chronicleFor(state.chronicle, readers),
     testMode
   });
 

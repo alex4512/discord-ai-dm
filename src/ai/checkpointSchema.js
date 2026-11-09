@@ -153,40 +153,56 @@ const taggedValue = {
   required: ['value', 'known_by']
 };
 
-/**
- * NPC update (D-007). The model rewrites the NPC list at each save.
- * author_notes are deliberately NOT part of this schema: they are written
- * only by the DM (/npc note, import) and merged back in code.
- */
-export const npcUpdateSchema = {
+const npcItem = {
   type: 'object',
   additionalProperties: false,
   properties: {
-    npcs: {
-      type: 'array',
-      items: {
-        type: 'object',
-        additionalProperties: false,
-        properties: {
-          name: { type: 'string' },
-          role: { type: 'string' },
-          appearance: { type: 'string' },
-          personality: { type: 'string' },
-          status: taggedValue,
-          location: taggedValue,
-          facts: taggedList('fact')
-        },
-        required: [
-          'name',
-          'role',
-          'appearance',
-          'personality',
-          'status',
-          'location',
-          'facts'
-        ]
-      }
-    }
+    name: { type: 'string' },
+    role: { type: 'string' },
+    appearance: { type: 'string' },
+    personality: { type: 'string' },
+    status: taggedValue,
+    location: taggedValue,
+    facts: taggedList('fact')
   },
-  required: ['npcs']
+  required: ['name', 'role', 'appearance', 'personality', 'status', 'location', 'facts']
+};
+
+const locationItem = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    name: { type: 'string' },
+    description: { type: 'string' },
+    state: taggedValue,
+    facts: taggedList('fact')
+  },
+  required: ['name', 'description', 'state', 'facts']
+};
+
+const eventItem = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    event: { type: 'string' },
+    location: { type: 'string' },
+    known_by: stringList
+  },
+  required: ['event', 'location', 'known_by']
+};
+
+/**
+ * World update at each save (D-007, D-009): the complete NPC and location
+ * registries plus the NEW events since the last checkpoint. author_notes
+ * are deliberately NOT part of this schema: only the DM writes them.
+ */
+export const worldUpdateSchema = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    npcs: { type: 'array', items: npcItem },
+    locations: { type: 'array', items: locationItem },
+    events: { type: 'array', items: eventItem }
+  },
+  required: ['npcs', 'locations', 'events']
 };

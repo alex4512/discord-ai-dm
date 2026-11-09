@@ -46,18 +46,21 @@ knowledge** (that character's private channel), and **DM notes**
 | `/checkpoint cancel` | main | Discard your draft |
 | `/checkpoint rollback <n>` | main | Restore version `n` (all parts, including NPCs) on a new timeline |
 
-### NPC commands
+### World commands
 
-NPCs are part of the checkpoint (D-007). What each channel sees is filtered
-the same way as character knowledge.
+NPCs, locations and the event chronicle are part of the checkpoint (D-007,
+D-009). Each channel sees only what its characters know: an NPC or place
+appears there once they've learned something about it.
 
 | Command | Where | Effect |
 | --- | --- | --- |
-| `/npc list` | all | NPCs and what this channel's readers know of their role/status |
-| `/npc show <name>` | all | One NPC as this channel may see it (`#dm-testing`: everything) |
-| `/npc note <name>: <text>` | testing | Add DM-authored truth (creates the NPC if new) as a new version |
+| `/npc list`, `/location list` | all | NPCs / places known in this channel |
+| `/npc show <name>`, `/location show <name>` | all | One entry as this channel may see it (`#dm-testing`: everything) |
+| `/npc note <name>: <text>`, `/location note <name>: <text>` | testing | Add DM-authored truth (creates the entry if new) as a new version |
+| `/chronicle` | all | The last 20 events this channel may know |
 
-To import a batch of NPCs once, run `node scripts/import-npcs.js data/<file>.local.json`.
+To import NPCs, locations and past events once, run
+`node scripts/import-world.js data/<file>.local.json`.
 Seed files hold canon and DM secrets, and the repo is public, so keep them in
 `data/*.local.json` (gitignored).
 
@@ -72,6 +75,7 @@ src/
 │   └── UserFacingError.js    # Expected errors whose message is shown to users
 ├── db/
 │   ├── pool.js               # pg pool, guild-locked transactions, DB clock
+│   ├── partitions.js         # The list of snapshot partitions (one place)
 │   ├── migrator.js           # Applies migrations/*.sql, tracks schema_migrations
 │   ├── schema.js             # Startup check: no pending migrations
 │   └── repositories/         # One module per table group, SQL only
@@ -87,8 +91,8 @@ src/
 │   └── dungeonMaster.js      # OpenAI calls (DM reply, isolated checkpoint parts)
 ├── services/                 # Business logic; no Discord types
 │   ├── audience.js           # Channel -> audience; per-audience filtering
-│   ├── npcService.js         # /npc note, NPC import (new versions)
-│   ├── npcRegistry.js        # Pure NPC merge helpers
+│   ├── worldService.js       # Author notes, world import (new versions)
+│   ├── registry.js           # Pure registry/chronicle merge helpers
 │   ├── campaignService.js
 │   ├── checkpointService.js
 │   └── dungeonMasterService.js
@@ -98,11 +102,11 @@ src/
     ├── reply.js              # Chunked replies without pings
     ├── checkpointView.js     # Channel -> audience, audience-safe rendering
     ├── commands/checkpointCommand.js
-    ├── commands/npcCommand.js
+    ├── commands/registryCommand.js  # /npc, /location, /chronicle
     └── handlers/messageCreate.js
 migrations/                   # Numbered SQL schema migrations
 scripts/migrate.js            # `npm run migrate` entry point
-scripts/import-npcs.js        # One-time NPC import from a local seed file
+scripts/import-world.js       # One-time NPC/location/chronicle import from a local seed
 docs/DECISIONS.md             # Design decision log
 docs/OPERATIONS.md            # Upgrade, verify, recover
 ```

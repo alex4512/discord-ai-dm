@@ -12,6 +12,11 @@ export const REGISTRY_KINDS = Object.freeze({
     label: 'NPC',
     perceivable: ['role', 'appearance', 'personality'],
     tagged: ['status', 'location']
+  },
+  locations: {
+    label: 'location',
+    perceivable: ['description'],
+    tagged: ['state']
   }
 });
 
@@ -86,4 +91,22 @@ export function mergeSeed(kind, previous, seed) {
   }
 
   return merged;
+}
+
+/**
+ * Appends new chronicle events (D-009). The chronicle is append-only:
+ * previous entries are never changed; exact duplicates are skipped.
+ */
+export function appendChronicle(previous, events, version) {
+  const existing = previous || [];
+  const fresh = (events || [])
+    .filter(e => e?.event?.trim())
+    .map(e => ({
+      event: e.event.trim(),
+      location: (e.location || '').trim(),
+      known_by: Array.isArray(e.known_by) ? e.known_by : [],
+      version
+    }))
+    .filter(e => !existing.some(x => x.event === e.event && x.location === e.location));
+  return [...existing, ...fresh];
 }

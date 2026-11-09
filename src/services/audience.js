@@ -150,3 +150,22 @@ export function registryFor(kind, entries, readers, characterNames = [], { inclu
 /** NPC registry for a set of readers (D-007). */
 export const npcsFor = (npcs, readers, characterNames, options) =>
   registryFor('npcs', npcs, readers, characterNames, options);
+
+/** Location registry for a set of readers (D-009); same rules as NPCs. */
+export const locationsFor = (locations, readers, characterNames, options) =>
+  registryFor('locations', locations, readers, characterNames, options);
+
+export const CHRONICLE_PROMPT_LIMIT = 30;
+
+/**
+ * Chronicle entries a set of readers may know (D-009): an event is kept
+ * only if EVERY reader is in its known_by (fail closed). Most recent
+ * `limit` entries, oldest first. `readers === null` (the DM) gets all.
+ */
+export function chronicleFor(chronicle, readers, { limit = CHRONICLE_PROMPT_LIMIT } = {}) {
+  const all = Array.isArray(chronicle) ? chronicle : [];
+  const visible = readers
+    ? all.filter(entry => knownByAll(entry, readers.map(normalize)))
+    : all;
+  return limit ? visible.slice(-limit) : visible;
+}

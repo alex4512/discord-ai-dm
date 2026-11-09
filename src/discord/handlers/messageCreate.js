@@ -4,7 +4,7 @@ import { playTurn } from '../../services/dungeonMasterService.js';
 import { isAllowedMessage, isDmMentioned, stripDmMention } from '../access.js';
 import { reply } from '../reply.js';
 import { handleCheckpointCommand, parseCheckpointCommand } from '../commands/checkpointCommand.js';
-import { handleNpcCommand, parseNpcCommand } from '../commands/npcCommand.js';
+import { handleWorldCommand } from '../commands/registryCommand.js';
 
 // One request at a time per guild: turns and checkpoint operations
 // share campaign state and must not interleave.
@@ -27,10 +27,8 @@ async function handleRequest(message, prompt) {
     return handleCheckpointCommand(message, checkpointAction, player);
   }
 
-  const npcArgs = parseNpcCommand(prompt);
-
-  if (npcArgs) {
-    return handleNpcCommand(message, npcArgs, player);
+  if (await handleWorldCommand(message, prompt, player)) {
+    return;
   }
 
   const turn = await playTurn({

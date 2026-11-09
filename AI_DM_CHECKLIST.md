@@ -90,10 +90,10 @@
 - [x] Track NPC locations, statuses and facts with `known_by`; motivations as DM author notes
 - [x] Protect NPC secrets and DM-only knowledge from player-facing output — author notes never in player output; still in DM prompts (D-007 trade-off)
 - [x] Persist NPC state changes after significant events — NPC update call at each save
-- [ ] Maintain location and world-event records
+- [x] Maintain location and world-event records — locations registry + append-only chronicle (D-009)
 - [x] Track unresolved mysteries, objectives, and consequences — shared checkpoint (`objectives`, `pending_decisions`, `unresolved_mysteries`), DM notes (`open_threads`, `world_truth`, `observable_world_state`), character knowledge (`private_objectives`)
 - [ ] NPC own memory, so NPCs can raise past events with a character in shared scenes (D-007 option C, deferred)
-- [ ] Validate continuity between main and private scenes
+- [x] Validate continuity between main and private scenes — DM notes `continuity_warnings` checked against chronicle and registries; review in `#dm-testing` drafts
 
 ## 6. Reliability, Security & Operations
 
@@ -137,8 +137,8 @@
 ### Milestone 4 — Persistent World
 
 - [x] Populate and maintain NPC registry (D-007)
-- [ ] World-state updates, locations, and consequences
-- [ ] Cross-scene consistency tests
+- [x] World-state updates, locations, and consequences (D-006, D-009)
+- ⚠️ Cross-scene consistency tests — mocked end-to-end test passes; live two-player check pending (Looming live test, step 4)
 
 ### Milestone 5 — Production Hardening
 

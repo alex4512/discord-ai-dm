@@ -58,13 +58,19 @@ export function renderSnapshot(snapshot, audience) {
       'DM notes',
       snapshot.dm_notes ? json(snapshot.dm_notes, dmNotesSchema) : NOTHING_YET
     ));
-    const npcNames = Object.keys(snapshot.npcs || {});
+    const listNames = (title, entries, command) => {
+      const names = Object.keys(entries || {});
+      sections.push(section(
+        title,
+        names.length ? `${names.join(', ')}
+(details: ${command} show <name>)` : NOTHING_YET
+      ));
+    };
+    listNames('NPCs', snapshot.npcs, '/npc');
+    listNames('Locations', snapshot.locations, '/location');
     sections.push(section(
-      'NPCs',
-      npcNames.length
-        ? `${npcNames.join(', ')}
-(details: /npc show <name>)`
-        : NOTHING_YET
+      'Chronicle',
+      `${(snapshot.chronicle || []).length} event(s) (recent: /chronicle)`
     ));
   } else {
     sections.push(

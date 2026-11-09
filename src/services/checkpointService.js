@@ -15,11 +15,11 @@ import { getPlayers } from '../db/repositories/playerRepository.js';
 import {
   generateCharacterKnowledge,
   generateDmNotes,
-  generateNpcUpdate,
+  generateWorldUpdate,
   generateSharedCheckpoint
 } from '../ai/dungeonMaster.js';
-import { npcsFor } from './audience.js';
-import { mergeUpdate } from './registry.js';
+import { chronicleFor, locationsFor, npcsFor } from './audience.js';
+import { appendChronicle, mergeUpdate } from './registry.js';
 import { toSnapshot } from '../db/partitions.js';
 import { toCharacterSummary } from '../ai/prompts.js';
 import { getCampaignLegacyCheckpoint } from './campaignService.js';
@@ -130,8 +130,12 @@ export async function createCheckpointDraft({ guildId, authorId }) {
   const playerSummaries = players.map(toCharacterSummary);
   const characterNames = players.map(p => p.character_name);
 
-  // NPC views for summarization inputs never include author_notes (D-007).
-  const npcsKnownTo = readers => npcsFor(previous.npcs, readers, characterNames);
+  // World views for summarization inputs never include author_notes (D-007).
+  const worldKnownTo = readers => ({
+    npcs: npcsFor(previous.npcs, readers, characterNames),
+    locations: locationsFor(previous.locations, readers, characterNames),
+    recent_events: chronicleFor(previous.chronicle, readers)
+  });
 
   const sharedTask = generateSharedCheckpoint({
     current_version: state.version,
@@ -139,7 +143,7 @@ export async function createCheckpointDraft({ guildId, authorId }) {
     legacy_kraavok: isFirstVersion ? legacy : null,
     active_main_history: mainHistory,
     players: playerSummaries,
-    npcs_known_to_everyone: npcsKnownTo(characterNames)
+    world_known_to_everyone: worldKnownTo(characterNames)
   });
 
   const characterTasks = activeScopes.map(async scope => [
@@ -151,7 +155,7 @@ export async function createCheckpointDraft({ guildId, authorId }) {
       shared_checkpoint: isFirstVersion ? null : previous.checkpoint,
       main_adventure_history: mainHistory,
       own_private_history: scope.history,
-      npcs_known_to_character: npcsKnownTo([scope.name])
+      world_known_to_character: worldKnownTo([scope.name])
     })
   ]);
 
@@ -165,11 +169,15 @@ export async function createCheckpointDraft({ guildId, authorId }) {
       privateScopes.map(scope => [scope.name, scope.history])
     ),
     players: playerSummaries,
-    npc_registry: previous.npcs
+    npc_registry: previous.npcs,
+    location_registry: previous.locations,
+    recent_events: chronicleFor(previous.chronicle, null)
   });
 
-  const npcTask = generateNpcUpdate({
+  const worldTask = generateWorldUpdate({
     previous_npcs: previous.npcs,
+    previous_locations: previous.locations,
+    recent_events: chronicleFor(previous.chronicle, null),
     previous_dm_notes: previous.dm_notes,
     main_adventure_history: mainHistory,
     private_histories: Object.fromEntries(
@@ -178,11 +186,11 @@ export async function createCheckpointDraft({ guildId, authorId }) {
     players: playerSummaries
   });
 
-  const [checkpoint, characterEntries, dmNotes, npcList] = await Promise.all([
+  const [checkpoint, characterEntries, dmNotes, world] = await Promise.all([
     sharedTask,
     Promise.all(characterTasks),
     dmTask,
-    npcTask
+    worldTask
   ]);
 
   const snapshot = {
@@ -192,7 +200,9 @@ export async function createCheckpointDraft({ guildId, authorId }) {
       ...Object.fromEntries(characterEntries)
     },
     dm_notes: dmNotes,
-    npcs: mergeUpdate(previous.npcs, npcList)
+    npcs: mergeUpdate(previous.npcs, world.npcs),
+    locations: mergeUpdate(previous.locations, world.locations),
+    chronicle: appendChronicle(previous.chronicle, world.events, state.version + 1)
   };
 
   const latestState = await stateRepo.getState(guildId);

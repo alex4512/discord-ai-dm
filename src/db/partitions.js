@@ -6,7 +6,9 @@ export const PARTITIONS = Object.freeze([
   'checkpoint',
   'character_knowledge',
   'dm_notes',
-  'npcs'
+  'npcs',
+  'locations',
+  'chronicle'
 ]);
 
 // Value used when a row predates a partition (column is NULL).
@@ -14,7 +16,9 @@ export const PARTITION_DEFAULTS = Object.freeze({
   checkpoint: null,
   character_knowledge: {},
   dm_notes: null,
-  npcs: {}
+  npcs: {},
+  locations: {},
+  chronicle: []
 });
 
 /** The partitions of a state/draft/version row, NULLs replaced by defaults. */
@@ -36,4 +40,9 @@ export function partitionPlaceholders(first) {
   return PARTITIONS.map((_, i) => `$${first + i}`).join(', ');
 }
 
-export const partitionValues = snapshot => PARTITIONS.map(name => snapshot[name]);
+/**
+ * Partition values as JSON text. Serialized explicitly because node-pg
+ * sends JS arrays (e.g. the chronicle) as Postgres arrays, not JSON.
+ */
+export const partitionValues = snapshot =>
+  PARTITIONS.map(name => (snapshot[name] == null ? null : JSON.stringify(snapshot[name])));
