@@ -150,7 +150,12 @@ Looming Shade.
 
 ## Caveats
 
-- No Avrae result ingestion yet.
+- No character sheets and no Avrae result ingestion yet. Players report
+  rolls to the DM.
+- Adding a player is manual: `.env`, a SQL row, the Discord channel and
+  code that names the characters. See *Player Onboarding* in
+  [`AI_DM_CHECKLIST.md`](AI_DM_CHECKLIST.md), which also lists the next
+  steps.
 - Each DM reply only gets what its channel's audience may see (D-004).
   Character knowledge, DM notes and NPC facts are filtered in code. Only
   DM-authored NPC author notes rely on the model not revealing them (D-007).

@@ -3,7 +3,7 @@
 **Repository:** https://github.com/alex4512/discord-ai-dm  
 **Stack:** Node.js · Discord.js · OpenAI Responses API · PostgreSQL · D&D 5e (2014 RAW)  
 **Campaign:** Dunmere / Northern Marches · Kraavok & Looming Shade  
-**Status:** Working MVP; multiplayer knowledge synchronization is the next priority.
+**Status (2026-11-09):** Two players live in one shared campaign. Memory, per-character knowledge, the NPC/location/chronicle world and scene images all work. **Next:** character sheets, then Avrae roll reading, then easy onboarding for new players (see *Next Steps*).
 
 > **Status key:** `[x]` implemented or observed working · `[ ]` pending · `⚠️` partially implemented / needs validation.
 >
@@ -49,7 +49,7 @@
 
 **Known limitation:** DM-authored NPC `author_notes` reach the prompts of channels whose characters know that NPC (spoiler risk only, D-007 revision). Everything learned in play is filtered per audience in code (D-004, D-007).
 
-## 3. Multiplayer Synchronization & Character Knowledge — NEXT PRIORITY
+## 3. Multiplayer Synchronization & Character Knowledge
 
 - [x] Two independently registered characters in one campaign
 - [x] Separate per-channel conversation histories
@@ -58,10 +58,14 @@
 - [x] Allow the DM to account for events in both private channels — `dm_notes` in every DM prompt, secrets filtered per audience (D-004)
 - [x] Prevent private knowledge from leaking into another player's narration — character knowledge and every DM-notes entry filtered by `known_by` in code (D-004 revision); NPC registry secrets still prompt-based
 - [x] Synchronize world-changing private events with shared campaign state — unattributed `observable_world_state` reaches every channel (D-006)
-- [ ] Transfer knowledge between characters only through appropriate in-game events
+- [x] Transfer knowledge between characters only through appropriate in-game events — in-character speech in `#main-adventure` is narrated and becomes shared (DM rule 16)
+- [x] Private channels see `#main-adventure` play since the last save, so a meeting is known before anyone saves (D-010)
+- [x] Other characters' class and level hidden outside `#dm-testing` (D-010)
+- [x] The checkpoint scene decides who is present (DM rule 17); DM-authored scene setups via `amendActiveSnapshot`
 - [x] Make checkpoint previews / `show` safe for shared-channel visibility (D-002)
-- [ ] Test: Looming discovers a clue that Kraavok does not know
-- [ ] Test: Kraavok and Looming meet and exchange selected information
+- [x] Looming Shade's first private session: own knowledge record created, nothing leaked to Kraavok or main (live, 2026-11-09)
+- ⚠️ Test: Looming discovers a clue that Kraavok does not know — not yet checked explicitly
+- ⚠️ Test: Kraavok and Looming meet and exchange selected information — they met at the eastern watchtower and Kraavok told his story in character (live, 2026-11-09); check the shared record after the next confirmed save
 - [ ] Test: rollback preserves knowledge separation across channels
 
 **Design goal:** One consistent world, two distinct player perspectives.
@@ -71,7 +75,7 @@
 - [x] D&D 5e (2014 RAW) specified in the DM instructions
 - [x] Player agency: DM does not decide PC actions or dialogue
 - [x] DM instructed not to invent dice results
-- [ ] Import and persist authoritative character sheets for both PCs
+- [ ] Import and persist authoritative character sheets for every PC (our sheets are authoritative; Avrae is an input only)
 - [ ] Track current/max HP, temporary HP, hit dice, and exhaustion
 - [ ] Track Rage, spell slots, class features, and limited-use resources
 - [ ] Track inventory, equipment, consumables, and currency
@@ -80,7 +84,12 @@
 - [ ] Validate mechanical outcomes against character stats and rules
 - [ ] Optional character-sheet export
 
-**Current state:** Avrae is used separately for dice, and character facts appear in prompts/checkpoints, but there is no authoritative automated mechanics ledger yet.
+**Current state:** Avrae is used separately for dice; players type results to the DM. Character facts appear in prompts and checkpoints, but there is no authoritative mechanics ledger yet.
+
+**Avrae constraints (to verify before building):**
+- Avrae has no API another bot can read sheets from, as far as we know. Sheets come from what Avrae posts (e.g. `!sheet`) or from the same source the player imports into Avrae.
+- Integration is one-way. Bots cannot command Avrae (it ignores bots), so the DM can only *ask* a player to run e.g. `!game hp -7`. After a rollback, Avrae is re-synced by hand.
+- Reading roll results means parsing Avrae's embed messages in our channels. That needs the right channel permissions, and our handler currently ignores messages from bots.
 
 ## 5. Persistent World & NPCs
 
@@ -101,6 +110,8 @@
 - [x] Per-guild in-process concurrency guard
 - [x] Database migrations and `dnd_bot` permissions applied — tracked in `migrations/`, `npm run migrate`
 - [ ] OpenAI token usage and cost tracking (`api_usage` table exists)
+- [x] Checkpoint save output cap raised to 12000 tokens (`CHECKPOINT_MAX_OUTPUT_TOKENS`); a truncated response gives a clear error and saves nothing
+- [x] Short `/checkpoint save` reply in the game channel; full draft via `/checkpoint draft`
 - [x] Scene images: on first arrival + `/image`, per-server daily cap, every generation logged (D-008)
 - [ ] API rate limits and spending safeguards
 - [ ] PostgreSQL backup schedule and restore drill
@@ -110,6 +121,27 @@
 - [ ] Integration tests for private-channel isolation and knowledge leaks
 - ⚠️ Graceful shutdown, reconnect behavior, and recovery tests — graceful shutdown done; recovery procedures in `docs/OPERATIONS.md`
 - [ ] Concurrency testing around drafts and incoming messages
+
+## 7. Player Onboarding — NEW
+
+Adding a player today is manual work for the admin:
+
+- `.env`: a channel ID and a Discord user ID per player (`KRAAVOK_*`, `LOOMING_*`), plus `ALLOWED_CHANNEL_IDS`. `src/config.js` names both players.
+- The `campaign_players` row is inserted by hand in SQL. Startup requires exactly Kraavok and Looming Shade (`REQUIRED_CHARACTERS` in `src/constants.js`).
+- The DM rules name the two characters (`src/ai/prompts.js`). The legacy checkpoint is Kraavok-only.
+- The private Discord channel and its permissions are created by hand.
+- The character's backstory and their entry into the shared scene were set up by hand (scene amendments v12–v14).
+
+Goal: a new player joins without code or `.env` changes and without SQL. Proposed shape (behaviour to agree before building):
+
+- [ ] Players and private channels stored in the database, not `.env`. Prompts, access checks and audiences read the roster from there.
+- [ ] Remove the hard-coded character names (`REQUIRED_CHARACTERS`, DM rules, legacy-checkpoint naming).
+- [ ] Admin command in `#dm-testing`, e.g. `/player add @user "Name" Class Level`. It registers the character and creates the private channel with the right permissions (needs the bot's *Manage Channels* permission).
+- [ ] Guided introduction in the new private channel: backstory, appearance and goals, seeding the first knowledge record.
+- [ ] Bring the character into the story: the DM proposes how they arrive in the shared scene, and the admin confirms it as a scene amendment.
+- [ ] Optional character-sheet import at registration (ties into Milestone 3).
+- [ ] `/player retire` (character leaves the campaign; history and knowledge kept).
+- [ ] Player guide in English and Greek (generalised from `docs/SESSION_GUIDE_GR.md`).
 
 ## Delivery Roadmap
 
@@ -121,15 +153,15 @@
 - [x] Basic rollback and timeline isolation verified manually
 - [ ] Extended rollback test across private channels
 
-### Milestone 2 — Multiplayer Knowledge & Synchronization **(next)**
+### Milestone 2 — Multiplayer Knowledge & Synchronization
 
 - [x] Design per-character knowledge storage
 - [x] Incorporate private-channel events into DM world awareness (D-004, D-006)
 - [x] Build spoiler-safe prompt and checkpoint views (D-002, D-004)
 - [x] Implement safe private-history checkpoint boundaries
-- ⚠️ Run end-to-end secrecy and information-sharing tests — secrecy passed in Discord for Kraavok (token, Orren, Voss, rollback); Looming's side and in-game sharing pending the live test
+- ⚠️ Run end-to-end secrecy and information-sharing tests — secrecy passed in Discord for Kraavok (token, Orren, Voss, rollback); Looming's first private session passed live; in-game sharing in progress (meeting played, confirm after next save)
 
-### Milestone 3 — Character State & Avrae
+### Milestone 3 — Character State & Avrae **(next)**
 
 - [ ] Authoritative character sheets and resource persistence
 - [ ] Avrae roll/result integration
@@ -147,6 +179,25 @@
 - [ ] Cost controls, logging, and monitoring
 - [ ] Authorization, concurrency safety, and automated tests
 - [ ] Always-on hosting
+
+### Milestone 6 — Player Onboarding
+
+- [ ] Database-driven roster and private channels; no hard-coded characters
+- [ ] `/player add` with channel creation, guided introduction and story entry
+- [ ] Player guides (English, Greek)
+
+## Next Steps
+
+In order, each agreed as a design before building:
+
+1. **Character sheets** (Milestone 3). Three open questions:
+   - **Visibility.** Full sheet in the player's private channel, only visible state in `#main-adventure`, everything in `#dm-testing`?
+   - **Starting data.** Handover stats, or current values from each player?
+   - **Automatic changes.** Should the DM apply sheet changes automatically, with correction commands? Recommended: yes.
+2. **Resources, inventory and rule checks** on top of the sheets.
+3. **Avrae roll reading.** Read Avrae's result messages and attach them to the right character, so players stop retyping results. This doesn't depend on the sheets and could be pulled forward.
+4. **Player onboarding** (Milestone 6). Add a player without config, SQL or hand-written scene setups.
+5. **Hardening** (Milestone 5). Always-on hosting, scheduled backups, cost tracking and automated tests.
 
 ---
 
@@ -201,7 +252,7 @@ good version).
 | # | Who / channel | Action | Check (in `#dm-testing`) |
 |---|---|---|---|
 | 1 | Looming, `#looming-private` | Plays normally, including at least one private discovery and, ideally, a visible change somewhere (a forced lock, a moved object) | — |
-| 2 | Anyone, `#main-adventure` | `/checkpoint save`, review, `/checkpoint confirm` | Save output in main has **no** trace of Looming's discovery |
+| 2 | Anyone, `#main-adventure` | `/checkpoint save`, `/checkpoint confirm` | `/checkpoint draft` (in `#dm-testing`): the shared part has **no** trace of Looming's discovery |
 | 3 | DM, `#dm-testing` | `/checkpoint show` | `Looming Shade: private knowledge` exists (first record, D-003); discovery entries are `known_by: ["Looming Shade"]`; any visible change is in `observable_world_state` **without names** |
 | 4 | Kraavok, `#kraavok-private` | Asks about the place Looming changed, if he goes there | The DM describes the change, **not** who did it, and nothing of Looming's discovery |
 | 5 | Kraavok, `#main-adventure` | Plays normally | No trace of Looming's discovery |
