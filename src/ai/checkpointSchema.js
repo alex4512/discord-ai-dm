@@ -163,9 +163,23 @@ const npcItem = {
     personality: { type: 'string' },
     status: taggedValue,
     location: taggedValue,
-    facts: taggedList('fact')
+    facts: taggedList('fact'),
+    // D-016: what the NPC personally remembers about each character.
+    memories: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          with: { type: 'string' },
+          memory: { type: 'string' },
+          secret: { type: 'boolean' }
+        },
+        required: ['with', 'memory', 'secret']
+      }
+    }
   },
-  required: ['name', 'role', 'appearance', 'personality', 'status', 'location', 'facts']
+  required: ['name', 'role', 'appearance', 'personality', 'status', 'location', 'facts', 'memories']
 };
 
 const locationItem = {

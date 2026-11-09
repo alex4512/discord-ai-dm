@@ -327,6 +327,8 @@ Alternatives considered and deferred: (B) show unmet NPCs' public face
 (role, appearance, personality) in shared channels; (C) per-NPC memory, so an
 NPC can bring up past events with a character in-world.
 
+*Option C was built later as D-016.*
+
 ---
 
 ## D-009: Locations registry and append-only chronicle
@@ -511,3 +513,24 @@ reused.
 - **`/xp medium challenge: <what> | <names>`** awards one by hand. Plain amounts (`/xp 100 <what> | <names>`) remain available.
 
 **Checked (2026-11-09).** Parser: difficulty pricing by level, milestones, challenges mixed with monsters; monster and plain awards unchanged. Real model on synthetic scenes: a disarmed trap was tagged in 3/4 runs (1/3 before the clarification that a check which overcomes an obstacle counts), and an ordinary Perception check that finds nothing in 0/4. Earlier XP tests (D-012, D-014) still pass.
+
+## D-016: NPC memory
+
+**Date:** 2026-11-09 · **Status:** accepted (user chose option A) · **Code:** `memories` in the NPC schema (`src/ai/checkpointSchema.js`), `mergeUpdate` (`src/services/registry.js`), `npcMemoriesFor` (`src/services/audience.js`), DM rule 19 and the world-update instructions (`src/ai/prompts.js`)
+
+**Context.** D-007 deferred option C: NPCs that remember their past scenes with a character and can raise them in-world. The user made it a priority.
+
+**Decision.**
+- **Data.** Each NPC record gets `memories: [{ with, memory, secret }]`, written from the NPC's point of view (e.g. "Kraavok rescued me when I was held prisoner…"). It lives inside the `npcs` partition, so it is versioned, rolled back and undone with everything else. No migration.
+- **Written at save** by the world-update call, which sees every channel. Memories are **append-only**: `mergeUpdate` keeps any previous memory the model leaves out, so an NPC never forgets. On the first saves the model backfills memories from existing facts, the chronicle and the DM notes.
+- **`secret`:** true when the NPC would keep it to themselves in front of others (a secret pact, a hidden item, something incriminating, or the character asked for discretion).
+- **In DM replies:** for NPCs mentioned in the current message, the recent history of that channel, the recent main play (private channels) or the checkpoint scene, the DM gets an `NPC MEMORIES` block. Name matching is whole-word, case-insensitive, on the full name or a part of at least 3 letters; titles like "Brother" or "Mother" alone don't match. Capped at 8 per NPC and character.
+  - **Private channel:** memories with that character, secret ones included (the NPC is alone with them).
+  - **Shared channel (user option A):** non-secret memories with any reader. The NPC may raise them in front of others, as a real person would, and what it says becomes shared at the next save. Secret memories are left out entirely (fail closed).
+  - **`#dm-testing`:** every memory of the mentioned NPCs.
+- **Rejected option B:** only memories every reader already knows. It is safer, but NPCs would act as strangers in shared scenes.
+
+**Checked (2026-11-09).**
+- Logic tests: append-only merge with author notes kept, per-channel filtering (secret excluded in main, included in private), mention matching (title words, short names, no substring matches). 10/10 passed.
+- Real model, placeholder NPC: in a shared scene the NPC recalled a non-secret memory out loud and never the secret (2/2). In the private channel it spoke discreetly about the secret (2/2).
+- Real save on live data (rolled back): memories backfilled for Orren, Voss, Varek and Mother Vael (secret) after the backfill instruction was strengthened (only Brann, Derren and the stranger before). All five save calls were well within their caps.

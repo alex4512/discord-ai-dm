@@ -78,6 +78,13 @@ later XP, an undo keeps it. Totals show only in your private channel
 bot rolls real dice and shows each roll above the narration, e.g.
 "🎲 Goblin 1 scimitar attack vs Kraavok: 1d20 [18] + 4 = **22**".
 
+**NPC memory (D-016).** Each NPC remembers its dealings with each character
+(written at every save, append-only, versioned). When an NPC comes up in a
+scene, the DM gets what it remembers about the characters in that channel
+and plays it accordingly. In shared scenes the NPC may bring up the past
+like a real person would, which shares it. Memories it would keep secret
+appear only in that character's private channel.
+
 ### Scene images
 
 When the scene moves somewhere new for the first time, the DM posts one

@@ -96,6 +96,13 @@ CAMPAIGN MEMORY RULES:
    Never state XP numbers yourself; they are computed and shown separately.
    Only tag something once, when it is resolved. Players never see the tag.
 
+19. NPC MEMORIES are what an NPC in the scene personally remembers about
+   the characters here. Play the NPC accordingly (gratitude, grudges,
+   debts, recognition) and let them bring up the shared past naturally,
+   even in front of others, as a real person would; whatever they say is
+   then known to the listeners. Memories marked secret are ones the NPC
+   keeps private: raise them only when alone with that character.
+
 For OOC questions, answer without advancing the narrative.
 
 Do not invent facts about past player decisions.
@@ -238,6 +245,19 @@ NPC fields:
   the current truth, with known_by = exactly the player characters who
   know it through play. Pure DM truth no character knows: known_by [].
 - facts: things about the NPC learned in play, each with known_by.
+- memories: what the NPC personally remembers about a player character,
+  from the NPC's point of view: only scenes where the NPC was present and
+  dealt with that character (helped, threatened, bargained with, was told
+  something by them). One short sentence each, e.g. "Kraavok pulled me out
+  of the flooded cells; I owe him my life." with = that character's exact
+  name. secret = true if the NPC would keep it to themselves in front of
+  others (a secret pact, a hidden item, something incriminating, or the
+  character asked for discretion); otherwise false.
+  Copy every previous memory verbatim and add new ones; never drop one.
+  Backfill: EVERY NPC that has ever dealt with a player character must
+  have memories of it. Check each NPC's facts, the chronicle and the DM
+  notes (including legacy context); if an NPC has no memory yet of a
+  dealing found there (e.g. a fact "Kraavok rescued Orren"), write it now.
 
 Location fields:
 - description: what anyone arriving there would perceive. Never mention
@@ -316,6 +336,7 @@ export function buildDmInstructions({
   locations,
   chronicle,
   recentSharedScene,
+  npcMemories,
   testMode
 }) {
   const hasSavedCheckpoint = state.version > 0;
@@ -365,6 +386,13 @@ export function buildDmInstructions({
     blocks.push(
       'CHRONICLE (established past events known in this channel, oldest first):\n' +
       chronicle.map(e => `- ${e.event}${e.location ? ` [${e.location}]` : ''}`).join('\n')
+    );
+  }
+
+  if (npcMemories && Object.keys(npcMemories).length) {
+    blocks.push(
+      'NPC MEMORIES (what these NPCs remember about the characters here; ' +
+      'rule 19):\n' + JSON.stringify(npcMemories)
     );
   }
 

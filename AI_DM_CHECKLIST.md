@@ -104,7 +104,7 @@
 - [x] Persist NPC state changes after significant events — NPC update call at each save
 - [x] Maintain location and world-event records — locations registry + append-only chronicle (D-009)
 - [x] Track unresolved mysteries, objectives, and consequences — shared checkpoint (`objectives`, `pending_decisions`, `unresolved_mysteries`), DM notes (`open_threads`, `world_truth`, `observable_world_state`), character knowledge (`private_objectives`)
-- [ ] NPC own memory, so NPCs can raise past events with a character in shared scenes (D-007 option C) — **next**
+- [x] NPC own memory: NPCs remember their dealings with each character and raise them in-world; secret ones only in private (D-016)
 - [x] Validate continuity between main and private scenes — DM notes `continuity_warnings` checked against chronicle and registries; review in `#dm-testing` drafts
 
 ## 6. Reliability, Security & Operations
@@ -201,12 +201,12 @@ Done on 2026-11-09: direct background saves with undo (D-011); XP and levels kep
 
 In order, each agreed as a design before building:
 
-1. **NPC memory** (D-007 option C, user priority). NPCs remember their past scenes with each character and can raise them in-world. Design to agree first.
+1. ~~**NPC memory**~~ Done (D-016).
 2. **Character sheets: XP only** (user decision 2026-11-09). A character is a name plus an XP count; level follows from XP (D-014, done). HP, AC, conditions, resources and items are **not** tracked; players state them when relevant, and anything more is added only on request.
 3. **Player onboarding** (Milestone 6). Add a player without config, SQL or hand-written scene setups.
 4. **Hardening** (Milestone 5). Always-on hosting, scheduled backups, cost tracking and automated tests. Later: safe multi-instance operation, including message ordering (see section 6).
 
-Smaller open items: verify in live play that the watchtower meeting reached the shared record; the Looming-only clue test; NPC memory (D-007 option C); a LICENSE choice.
+Smaller open items: verify in live play that the watchtower meeting reached the shared record; the Looming-only clue test; watch NPC memories in live play after the next save; a LICENSE choice.
 
 ---
 

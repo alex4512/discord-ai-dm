@@ -18,6 +18,7 @@ import {
   dmNotesFor,
   chronicleFor,
   locationsFor,
+  npcMemoriesFor,
   npcsFor,
   readersOf
 } from './audience.js';
@@ -104,6 +105,18 @@ export async function playTurn({
     recentSharedScene: sharedHistory.length
       ? formatSharedTranscript(sharedHistory)
       : null,
+    // NPCs mentioned in the message, recent history or scene (D-016).
+    npcMemories: npcMemoriesFor(
+      state.npcs,
+      audience,
+      readers,
+      [
+        prompt,
+        ...history.map(m => m.content),
+        ...sharedHistory.map(m => m.content),
+        JSON.stringify(state.checkpoint || {})
+      ].join('\n')
+    ),
     testMode
   });
 

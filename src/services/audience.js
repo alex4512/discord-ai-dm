@@ -155,6 +155,68 @@ export const npcsFor = (npcs, readers, characterNames, options) =>
 export const locationsFor = (locations, readers, characterNames, options) =>
   registryFor('locations', locations, readers, characterNames, options);
 
+// Titles that must not on their own make an NPC "appear in the scene".
+const TITLE_WORDS = new Set([
+  'brother', 'sister', 'mother', 'father', 'captain', 'lord', 'lady',
+  'master', 'mistress', 'sergeant', 'old', 'young', 'the'
+]);
+export const NPC_MEMORIES_PER_CHARACTER = 8;
+
+// Shorter than the name guard above: a false match only adds context.
+const MIN_MENTION_PART = 3;
+
+function mentions(text, name) {
+  const words = String(name).toLowerCase().split(/\s+/)
+    .filter(w => w.length >= MIN_MENTION_PART && !TITLE_WORDS.has(w));
+  const needles = [String(name).toLowerCase(), ...words];
+  return needles.some(n => new RegExp(`(^|[^\\p{L}])${n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[^\\p{L}])`, 'iu').test(text));
+}
+
+/**
+ * NPC memories for a DM reply prompt (D-016): for each NPC mentioned in
+ * `sceneText` (current message, recent history, scene), what it remembers
+ * about the characters reading this channel.
+ *
+ * - private channel: memories with its character, secret ones included
+ *   (the NPC is alone with them);
+ * - shared channel: non-secret memories with any reader. The NPC may raise
+ *   them in front of others, as a person would; secrets are left out
+ *   entirely (fail closed);
+ * - #dm-testing (readers null): every memory of the mentioned NPCs.
+ */
+export function npcMemoriesFor(npcs, audience, readers, sceneText) {
+  const text = String(sceneText || '');
+  const wanted = readers ? readers.map(normalize) : null;
+  const alone = audience.kind === 'character';
+  const result = {};
+
+  for (const [key, npc] of Object.entries(npcs || {})) {
+    if (!Array.isArray(npc.memories) || !npc.memories.length) continue;
+    if (!mentions(text, npc.name || key)) continue;
+
+    const visible = npc.memories.filter(m =>
+      (!wanted || wanted.includes(normalize(m.with))) &&
+      (!m.secret || alone || !wanted)
+    );
+
+    // Most recent few per character.
+    const perCharacter = {};
+    for (const m of visible) (perCharacter[m.with] ||= []).push(m);
+    const kept = Object.values(perCharacter)
+      .flatMap(list => list.slice(-NPC_MEMORIES_PER_CHARACTER));
+
+    if (kept.length) {
+      result[npc.name || key] = kept.map(m => ({
+        with: m.with,
+        memory: m.memory,
+        ...(m.secret ? { secret: true } : {})
+      }));
+    }
+  }
+
+  return result;
+}
+
 export const CHRONICLE_PROMPT_LIMIT = 30;
 
 /**

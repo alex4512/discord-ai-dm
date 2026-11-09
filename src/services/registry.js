@@ -46,7 +46,9 @@ export function emptyRecord(kind, name) {
 /**
  * Applies the model's full list on top of the previous registry:
  * - author_notes are always carried over; the model cannot write them,
- * - entries the model omitted are kept unchanged (never silently deleted).
+ * - entries the model omitted are kept unchanged (never silently deleted),
+ * - NPC memories are append-only (D-016): previous memories the model left
+ *   out are kept, so an NPC never forgets.
  */
 export function mergeUpdate(previous, updatedList) {
   const merged = { ...(previous || {}) };
@@ -55,14 +57,34 @@ export function mergeUpdate(previous, updatedList) {
     if (!entry?.name?.trim()) continue;
     const key = findKey(merged, entry.name) || entry.name.trim();
     const { author_notes: _ignored, ...fromModel } = entry;
+    const before = merged[key];
     merged[key] = {
       ...fromModel,
       name: key,
-      author_notes: merged[key]?.author_notes || []
+      author_notes: before?.author_notes || []
     };
+    if (before?.memories || fromModel.memories) {
+      merged[key].memories = mergeMemories(before?.memories, fromModel.memories);
+    }
   }
 
   return merged;
+}
+
+const memoryKey = m => `${normalize(m.with)}|${normalize(m.memory)}`;
+
+/** Previous memories first (a re-sent copy may update `secret`), then new ones. */
+function mergeMemories(previous = [], updated = []) {
+  const valid = m => m && typeof m.memory === 'string' && m.memory.trim() && m.with;
+  const byKey = new Map();
+  for (const m of [...previous, ...updated].filter(valid)) {
+    byKey.set(memoryKey(m), {
+      with: String(m.with).trim(),
+      memory: m.memory.trim(),
+      secret: Boolean(m.secret)
+    });
+  }
+  return [...byKey.values()];
 }
 
 /**
