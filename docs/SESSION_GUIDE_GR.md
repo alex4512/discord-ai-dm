@@ -26,6 +26,9 @@
 | `@Dungeon Master /location list` | Τόποι που ξέρεις |
 | `@Dungeon Master /chronicle` | Γεγονότα που ξέρεις |
 | `@Dungeon Master /image <τι να δείξει>` | Εικόνα της σκηνής (ημερήσιο όριο) |
+| `@Dungeon Master /xp 3 goblin CR 1/4 \| Looming Shade` | Υπολογίζει XP με το χέρι, αν ο DM το ξέχασε |
+
+**XP:** Μετά από νικηφόρα μάχη, ο DM γράφει μόνος του π.χ. «+75 each … Avrae: `!cc XP +75`». Τρέχεις αυτή την εντολή στο Avrae. Την πρώτη φορά, φτιάξε τον μετρητή με `!cc create XP -min 0`.
 
 ---
 

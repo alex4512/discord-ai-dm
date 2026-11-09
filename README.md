@@ -56,6 +56,13 @@ appears there once they've learned something about it.
 | `/npc show <name>`, `/location show <name>` | all | One entry as this channel may see it (`#dm-testing`: everything) |
 | `/npc note <name>: <text>`, `/location note <name>: <text>` | testing | Add DM-authored truth (creates the entry if new) as a new version |
 | `/chronicle` | all | The last 20 events this channel may know |
+| `/xp <count> <creature> CR <cr>; ... \| <names>` | all | Compute an XP award by hand and show the Avrae command (D-012) |
+
+**Experience (D-012).** When a fight ends in the characters' favour, the DM
+adds a hidden XP tag. The bot computes the award from the 2014 CR table,
+splits it evenly and posts e.g. "+75 each … Avrae: `!cc XP +75`". Totals live
+in Avrae (one-time setup per character: `!cc create XP -min 0`); our bot can't
+command Avrae, which ignores bots.
 
 ### Scene images
 

@@ -5,6 +5,8 @@ import { getPlayers } from '../../db/repositories/playerRepository.js';
 import { audienceForChannel, chronicleFor, readersOf, registryFor } from '../../services/audience.js';
 import { addAuthorNote } from '../../services/worldService.js';
 import { REGISTRY_KINDS, findKey } from '../../services/registry.js';
+import { formatXpAward, parseXpTag, xpHistoryNote } from '../../services/xp.js';
+import { storeMessage } from '../../db/repositories/messageRepository.js';
 
 /** Readers + filtered views for the channel a command was sent in. */
 async function channelView(ctx) {
@@ -128,11 +130,54 @@ const chronicleCommand = {
   }
 };
 
+const XP_HELP = [
+  'Award XP by hand when the DM missed it (D-012):',
+  '/xp 3 goblin CR 1/4 | Kraavok, Looming Shade',
+  '/xp 100 solved the seal | Kraavok',
+  'Several groups: /xp 4 goblin CR 1/4; 1 bugbear CR 1 | Kraavok, Looming Shade'
+].join('\n');
+
+/**
+ * `/xp <tag body>`: the same computation as the DM's hidden XP tag. In a
+ * campaign channel the award is noted in history, so the next save has it.
+ */
+const xpCommand = {
+  parse(prompt) {
+    const match = prompt.trim().match(/^\/xp(?:\s+([\s\S]+))?$/i);
+    return match ? (match[1] || '').trim() : null;
+  },
+
+  async handle(message, body, ctx) {
+    const players = await getPlayers(ctx.guildId);
+    const award = body && parseXpTag(body, players.map(p => p.character_name));
+
+    if (!award) return reply(message, XP_HELP);
+
+    if (config.campaignChannelIds.includes(ctx.channelId)) {
+      const state = await getActiveCheckpoint(ctx.guildId);
+      if (state) {
+        await storeMessage({
+          id: message.id,
+          guildId: ctx.guildId,
+          channelId: ctx.channelId,
+          authorId: ctx.userId,
+          role: 'assistant',
+          content: xpHistoryNote(award),
+          timelineId: state.timeline_id
+        });
+      }
+    }
+
+    return reply(message, formatXpAward(award));
+  }
+};
+
 /** World commands, tried in order by the message handler. */
 export const WORLD_COMMANDS = [
   registryCommand({ command: '/npc', kind: 'npcs' }),
   registryCommand({ command: '/location', kind: 'locations' }),
-  chronicleCommand
+  chronicleCommand,
+  xpCommand
 ];
 
 /** Runs the first matching world command. Returns true if one matched. */

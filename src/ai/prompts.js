@@ -64,6 +64,16 @@ CAMPAIGN MEMORY RULES:
    present and where. If recent history doesn't mention someone the
    checkpoint places in the scene, they are present; weave them in
    naturally instead of denying them.
+18. Experience (mandatory): whenever your reply ends a fight or encounter
+   in the characters' favour (the last foe killed, routed, captured or
+   decisively bypassed), you MUST end the reply with one hidden line, exactly:
+   [[XP: <count> <creature> CR <cr>; ... | <character>, <character>]]
+   e.g. [[XP: 4 goblin CR 1/4; 1 bugbear CR 1 | Kraavok, Looming Shade]]
+   Use Monster Manual (2014) challenge ratings and list only the player
+   characters who took part. For a notable non-combat achievement you may
+   award a plain amount: [[XP: 100 solved the seal | Kraavok]]. Never state
+   XP numbers yourself; the line is computed and shown separately. Only tag
+   an encounter once, when it is resolved. Players never see the tag.
 
 For OOC questions, answer without advancing the narrative.
 

@@ -78,8 +78,10 @@
 - [ ] Track current/max HP, temporary HP, hit dice, and exhaustion
 - [ ] Track Rage, spell slots, class features, and limited-use resources
 - [ ] Track inventory, equipment, consumables, and currency
+- [x] XP awards: the DM tags resolved encounters, code computes XP from the CR table and posts the Avrae command; `/xp` by hand (D-012). Totals kept in Avrae.
 - [ ] Track conditions, rests, and level progression
-- [ ] Parse or associate Avrae roll results with the correct actions
+- [ ] Decide who rolls for monsters and NPCs (the DM currently asks the players to roll them in Avrae)
+- [x] ~~Parse Avrae roll results automatically~~ Dropped (user decision): players roll in Avrae and tell the DM the result; that keeps their intent and avoids noise
 - [ ] Validate mechanical outcomes against character stats and rules
 - [ ] Optional character-sheet export
 

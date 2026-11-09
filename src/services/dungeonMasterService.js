@@ -9,6 +9,7 @@ import {
 } from '../ai/prompts.js';
 import { config } from '../config.js';
 import { getCampaignLegacyCheckpoint } from './campaignService.js';
+import { extractXpTags, xpHistoryNote } from './xp.js';
 import {
   audienceForChannel,
   characterKnowledgeFor,
@@ -117,14 +118,18 @@ export async function playTurn({
 
   let reply;
   let scene;
+  let xpAwards = [];
   try {
     const raw = await generateDmReply({
       instructions,
       input: [...history, { role: 'user', content: playerInput }]
     });
-    const parsed = extractSceneTag(raw.text);
+    // XP tags first, so a reply that is only tags still gets the scene fallback.
+    const xp = extractXpTags(raw.text, characterNames);
+    const parsed = extractSceneTag(xp.text);
     reply = { ...raw, text: parsed.text };
     scene = parsed.scene;
+    xpAwards = xp.awards;
   } catch (error) {
     // No DM answer: drop the orphaned player message so a retry is clean.
     if (!testMode) await deleteMessage(messageId);
@@ -137,13 +142,15 @@ export async function playTurn({
       id: reply.id,
       authorId: botUserId,
       role: 'assistant',
-      content: reply.text
+      // The award note keeps XP in history, so the next save records it.
+      content: [reply.text, ...xpAwards.map(xpHistoryNote)].join('\n\n')
     });
   }
 
   return {
     text: reply.text,
     scene,
+    xpAwards,
     audience,
     version: state.version,
     timelineId: state.timeline_id,

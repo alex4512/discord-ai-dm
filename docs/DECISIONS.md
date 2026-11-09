@@ -446,3 +446,18 @@ reused.
 - **Removed:** `draft`, `confirm`, `cancel`. The drafts table stays (unused), so no migration is needed. Any leftover draft is cleared on save.
 
 **Trade-off.** There is no review before a save goes live. A bad summary (e.g. a private fact in the shared part) is live until undone. Check with `/checkpoint show` in `#dm-testing` after saves that involved private play.
+
+## D-012: XP awards computed in code; totals kept in Avrae
+
+**Date:** 2026-11-09 · **Status:** accepted · **Code:** `src/services/xp.js`, DM rule 18 in `src/ai/prompts.js`, `/xp` in `src/discord/commands/registryCommand.js`
+
+**Context.** The players roll dice in Avrae and report results to the DM themselves (they rejected automatic Avrae parsing). They want XP tracked. A model can't reliably count XP across a campaign, and our bot can't trigger Avrae: Avrae ignores bots and webhooks, and has no write API. A self-bot on a player's account would break Discord's terms.
+
+**Decision.**
+- **The DM judges, the code counts.** When a reply ends an encounter in the characters' favour, the DM ends it with a hidden tag: `[[XP: 4 goblin CR 1/4; 1 bugbear CR 1 | Kraavok, Looming Shade]]` (or a plain amount for non-combat achievements). The code computes XP from the 2014 Monster Manual CR table and splits it evenly among the named player characters. It floors the result and ignores names that aren't registered (e.g. NPC companions).
+- **Output:** one line after the reply, e.g. "**XP:** 3 goblin (CR 1/4) = 150 XP → **+75 each** (Kraavok, Looming Shade). Avrae: `!cc XP +75`". The players run the command; Avrae keeps the totals and levels are updated on the sheet source.
+- **Memory:** a short "(XP awarded: …)" note is appended to the stored DM reply, so saves record it.
+- **`/xp <same syntax>`** awards by hand when the DM missed it. In campaign channels the note is stored in history.
+- Not stored as totals in our database, so a rollback doesn't change Avrae. Re-sync by hand.
+
+**Checked (2026-11-09, synthetic scene with placeholder data).** The tag was emitted in 5 of 5 runs once the rule was marked mandatory (1 of 2 before), and in 0 of 3 mid-fight runs (no false awards).
