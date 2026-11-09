@@ -103,6 +103,11 @@ CAMPAIGN MEMORY RULES:
    then known to the listeners. Memories marked secret are ones the NPC
    keeps private: raise them only when alone with that character.
 
+20. A "(Scene map: ...)" line in the history is the sketch the players
+   were shown (1 square = 5 ft; squares as column letter + row number).
+   Treat it as the current positions and keep distances and narration
+   consistent with it, unless creatures have moved since.
+
 For OOC questions, answer without advancing the narrative.
 
 Do not invent facts about past player decisions.
@@ -497,9 +502,16 @@ from the supplied material only. One square = 5 feet.
   trees, fire, pits, stairs. x, y = top-left square; w, h = size in squares.
   label: short name ("north wall", "well") or empty string.
 - Choose width and height (4 to 24) to fit the scene with a little room.
+- Never place a creature on a wall square; a creature that would end up
+  in a wall stops on the nearest open square.
 - Positions follow the latest narration (distances, "next to", "across the
   room"). Where the material is vague, choose something plausible and
   consistent, and say so briefly in notes.
+- previous_map, if given, is the last sketch of this scene in this channel
+  (squares as column letter + row number). If the scene is still the same
+  place, keep its layout, size and terrain and only update what changed
+  since (creatures that moved, arrived, fled or fell). If the action has
+  moved to a different place, draw a new map.
 - If the request names a focus, sketch that.
 - Never add creatures or features the material doesn't support.
 - title: a short name for the place.

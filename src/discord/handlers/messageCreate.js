@@ -62,7 +62,13 @@ async function handleRequest(message, prompt) {
     const focus = asText ? args.replace(/^text\b\s*/i, '') : args;
     await reply(message, '*The DM sketches the scene...*');
     return { kind: 'map', task: async () => {
-      const map = await sceneMap({ guildId, channelId: message.channel.id, request: focus });
+      const map = await sceneMap({
+        guildId,
+        channelId: message.channel.id,
+        messageId: message.id,
+        authorId: message.author.id,
+        request: focus
+      });
       if (asText) {
         await message.channel.send({ content: renderTextMap(map), allowedMentions: { parse: [] } });
       } else {

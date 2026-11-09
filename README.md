@@ -102,6 +102,10 @@ Seed files hold canon and DM secrets, and the repo is public, so keep them in
 `/map` sketches the current scene as a top-down tactical grid (D-018).
 One cheap model call places creatures and terrain as data, and the code
 draws it, so positions stay exact. The image model is never used.
+Each map is also stored in that channel's history as a short
+"(Scene map: …)" note (D-019). The DM keeps narration consistent with it,
+the next `/map` updates it instead of starting over, and it follows
+save, undo and rollback like any message.
 
 | Command | Where | Effect |
 | --- | --- | --- |

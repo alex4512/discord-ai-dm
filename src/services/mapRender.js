@@ -203,6 +203,35 @@ export function renderPng(map) {
   return Buffer.from(new Resvg(renderSvg(map), { background: '#efe6d2' }).render().asPng());
 }
 
+export const MAP_NOTE_PREFIX = '(Scene map:';
+
+const square = (x, y) => `${column(x - 1)}${y}`;
+
+/**
+ * Compact note stored in the channel's history (D-019), so later replies
+ * and the next /map know the sketched positions, e.g.
+ * "(Scene map: Yard, 12×8, 1 square = 5 ft. Tokens: K C6 Kraavok, G1 F2
+ *  Goblin (enemy). Terrain: door B4 (rear exit), difficult C5–G7 (mud).)"
+ */
+export function compactMapNote(map) {
+  const tokens = map.tokens
+    .map(t => `${t.id} ${square(t.x, t.y)} ${t.name}${t.side === 'enemy' ? ' (enemy)' : t.side === 'neutral' ? ' (neutral)' : ''}`)
+    .join(', ');
+  const terrain = map.features
+    .map(f => {
+      const area = f.w === 1 && f.h === 1
+        ? square(f.x, f.y)
+        : `${square(f.x, f.y)}–${square(f.x + f.w - 1, f.y + f.h - 1)}`;
+      return `${FEATURE_NAME[f.kind]} ${area}${f.label ? ` (${f.label})` : ''}`;
+    })
+    .join(', ');
+  return (
+    `${MAP_NOTE_PREFIX} ${map.title}, ${map.width}×${map.height}, 1 square = 5 ft, ` +
+    `columns A–${column(map.width - 1)}, rows 1–${map.height}. ` +
+    `Tokens: ${tokens || 'none'}. Terrain: ${terrain || 'open ground'}.)`
+  );
+}
+
 /** Text legend posted with the PNG. */
 export function renderLegendText(map) {
   const { tokens, kinds } = mapLegend(map);

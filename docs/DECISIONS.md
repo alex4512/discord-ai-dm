@@ -570,3 +570,26 @@ reused.
 **Checked (2026-11-09).** Rendering tests: clamping, unknown kinds dropped, token de-duplication, grid rows, PNG output. Real model on a synthetic courtyard fight: walls, door, well, cover and 3 skeletons placed as narrated. A read-only map of the live #main-adventure scene placed the party in the rear work area and muddy yard.
 
 **Deferred in the same discussion:** graceful restart (drain in-flight work, `/restart`, catch-up of missed mentions). The user called it a luxury for now; it is noted in the checklist.
+
+## D-019: Maps are stored in the channel's history
+
+**Date:** 2026-11-09 · **Status:** accepted; **not yet validated in play** (the user will look for it during user testing) · **Code:** `compactMapNote()` in `src/services/mapRender.js`, `sceneMap()` in `src/services/mapService.js`, DM rule 20 and the `previous_map` rule in `MAP_INSTRUCTIONS` (`src/ai/prompts.js`)
+
+**Context.** With D-018 a map was shown and then forgotten. The DM's next reply didn't know the positions the players had just seen, and each `/map` started from scratch, so positions could jump between two sketches of the same scene. The user asked whether the map should be saved in the current context.
+
+**Decision.**
+- **Stored as a short note.** After `/map`, a compact text note is stored in **that channel's** history as a DM message, under the `/map` command's message id. Size is about 300–600 chars. Example:
+  `(Scene map: Dunmere Broad Low Building, 12×8, 1 square = 5 ft, columns A–L, rows 1–8. Tokens: K D4 Kraavok, L C4 Looming Shade, … Terrain: wall A1–L1 (north wall), door C5 (storage door), cover D6 (crates), ….)`
+  The PNG and the full grid are not stored.
+- **The DM uses it** (DM rule 20): a "(Scene map: …)" line is the sketch the players saw. The DM treats it as the current positions and keeps distances and narration consistent with it, unless creatures moved since.
+- **The next `/map` updates it.** The channel's latest map note is passed as `previous_map`. If the scene is the same place, the model keeps the layout, size and terrain and moves only what changed. If the action moved elsewhere, it draws a new map. Creatures are never placed on wall squares.
+- **It follows the story for free.** It is an ordinary message, so the next save summarizes it, a rollback abandons it with its timeline, and an undo keeps it. A map in a private channel stays in that channel (a map in #main-adventure also reaches private channels through recent main play, D-010, as all main play does). #dm-testing stores nothing.
+- No migration.
+
+**Checked (2026-11-09, rolled-back test on live data, real map calls).** Map 1 was stored as a DM note. After a narrated move ("Kraavok strides three squares north"), map 2 received map 1 as `previous_map`, kept the same 12×8 layout and terrain, moved Kraavok from D4 north, and left the other 4 tokens in place. The next DM turn had the note in its history and rule 20 in its instructions. A map in #dm-testing was not stored. 10/10 passed, 0 rows left. The model had put Kraavok on a wall square, which led to the "never on a wall" rule.
+
+**What to look for in user testing.**
+1. After a `/map`, ask the DM about distances ("how far is the door?"). The answer should match the map.
+2. Move someone, then run `/map` again. The layout should stay and only the moved creatures should change.
+3. Move to a different place, then run `/map`. It should be a new map, not the old layout.
+4. Check that a map from a private channel never shows up in the other player's channel.

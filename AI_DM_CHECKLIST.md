@@ -118,6 +118,7 @@
 - [x] Short `/checkpoint save` replies in the game channel ("Saving…", then "Saved as vN")
 - [x] Scene images: on first arrival + `/image`, per-server daily cap, every generation logged (D-008)
 - [x] Scene maps: `/map` (drawn PNG) and `/map text` (grid); positions as data from one model call, drawn by code (D-018)
+- ⚠️ Maps stored in the channel's history; DM and the next `/map` build on them (D-019) — **to be validated in user testing**
 - [ ] Graceful restart: drain in-flight replies/saves before exit, `/restart`, catch-up of mentions missed while down (proposed 2026-11-09; deferred by the user as a luxury)
 - [ ] API rate limits and spending safeguards
 - [ ] PostgreSQL backup schedule and restore drill
@@ -222,6 +223,7 @@ Smaller open items:
 - verify in live play that the watchtower meeting reached the shared record
 - the Looming-only clue test
 - watch NPC memories and compaction in live play after the next saves
+- validate stored maps in play (D-019, *What to look for*)
 - a LICENSE choice
 
 ---
