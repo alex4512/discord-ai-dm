@@ -614,3 +614,21 @@ reused.
 - **Or uses an existing channel** given as `#channel`, for when those permissions aren't granted.
 - Registers the player, sets the starting XP for the level (D-015), reloads the roster (no restart), posts a welcome in the new channel.
 - Later steps (separate designs): guided introduction (backstory → first knowledge record), story entry approved by the admin, `/player retire`, player guide in English and Greek.
+
+## D-021: MVP declared complete; post-MVP roadmap adopted
+
+**Date:** 2026-11-10 · **Status:** accepted (owner decision)
+
+**Context.** Milestones 1–4 (memory, multiplayer knowledge, character progress and dice, persistent world) and onboarding step 1 (D-020) are built and in live play. The owner brought a feature summary for what comes next.
+
+**Decision.**
+- **The MVP is complete.** The ⚠️ items left in Milestones 1–4 are live validations (the Looming-only clue, the watchtower meeting in the shared record, stored maps), carried over as open items, not blockers.
+- **Post-MVP roadmap** (`AI_DM_CHECKLIST.md`, section 8):
+  - Phase 1 Reliability: Consistency Auditor, then DM Diagnostics.
+  - Phase 2 Exploration: hidden objects, then passive and secret checks.
+  - Phase 3 Immersion: voice narration, NPC voice profiles, hybrid text and voice.
+  - Usage tracking and budget controls are built together with voice, not afterwards.
+  - Visual fog of war is deferred.
+- **Architectural principle:** PostgreSQL is the authoritative campaign state. The AI proposes narration and state changes; the application validates and persists them. Already true for saves, XP (D-014), dice (D-013) and maps (D-018). Every new feature follows it.
+- **Each feature still gets its own design agreed before building.** Known conflicts are noted in section 8 so they are decided then, not discovered: inventory checks vs the XP-only decision, passive scores vs XP-only, and stored hidden objects vs maps that are redrawn each time.
+- **Backlog, not scheduled:** onboarding step 2 (`/player add`, when a player joins) and hardening (Milestone 5). Cost tracking moves into feature 8.

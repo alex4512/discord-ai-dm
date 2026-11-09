@@ -4,7 +4,7 @@
 **Repository:** https://github.com/alex4512/discord-ai-dm  
 **Stack:** Node.js · Discord.js · OpenAI Responses API · PostgreSQL · D&D 5e (2014 RAW)  
 **Campaign:** Dunmere / Northern Marches · Kraavok & Looming Shade  
-**Status (2026-11-09):** Two players live in one shared campaign. Memory with save/undo/rollback, per-character knowledge, the NPC/location/chronicle world with NPC memory, XP and levels, monster dice, scene images and scene maps all work. **Next:** player onboarding, then hardening (see *Next Steps*).
+**Status (2026-11-10): MVP complete** (D-021). Two players live in one shared campaign. Memory with save/undo/rollback, per-character knowledge, the NPC/location/chronicle world with NPC memory, XP and levels, monster dice, scene images, scene maps and a database-driven player roster all work. **Next:** the post-MVP roadmap, Phase 1 Reliability (section 8, *Next Steps*).
 
 > **Status key:** `[x]` implemented or observed working · `[ ]` pending · `⚠️` partially implemented / needs validation.
 >
@@ -150,7 +150,44 @@ Adding a player today (after step 1): a SQL row in `campaign_players` with `priv
 - [ ] `/player retire` (character leaves the campaign; history and knowledge kept).
 - [ ] Player guide in English and Greek (generalised from `docs/SESSION_GUIDE_GR.md`).
 
+## 8. Post-MVP Roadmap — NEW (2026-11-10)
+
+Adopted 2026-11-10 (D-021). Each feature still gets its own design agreed with the owner before it is built.
+
+**Architectural principle.** PostgreSQL stays the authoritative source of campaign state. The AI proposes narration and state changes; the application validates and persists them. This is how XP (D-014), monster dice (D-013), maps (D-018) and saves already work.
+
+| # | Feature | What it means | Priority | Phase |
+|---|---|---|---|---|
+| 1 | **AI DM Consistency Auditor** | Check narration against the stored world state, NPC locations, character knowledge and previous events. Catch contradictions without restricting legitimate improvisation. | High | 1 Reliability |
+| 2 | **DM Diagnostics & Campaign Integrity** | Diagnostics for timeline consistency, checkpoint integrity, missing references, conflicting state and synchronization problems. | High | 1 Reliability |
+| 3 | **Persistent Secret Passages & Hidden Objects** | Hidden doors, traps and objects with their discovery conditions, stored as world entities linked to places and grid positions. | Medium | 2 Exploration |
+| 4 | **Passive Perception & Secret Skill Checks** | Evaluate passive abilities automatically; resolve some checks privately, with auditable results and without revealing what is hidden. | Medium | 2 Exploration |
+| 5 | **AI Voice Narration** | Selected narration and NPC dialogue as speech: first as Discord audio attachments, later optionally in a voice channel. | Medium | 3 Immersion |
+| 6 | **Persistent NPC Voice Profiles** | A recognizable voice and delivery style per recurring NPC, consistent across sessions. | Medium | 3 Immersion |
+| 7 | **Hybrid Text & Voice Mode** | Narration and dialogue always available as text, speech optional; dice, maps and combat information stay in text channels. | Medium | 3 Immersion |
+| 8 | **Voice Usage Tracking & Budget Controls** | Track text tokens, audio usage and estimated cost separately; audio caching, selective narration, session and monthly spending limits. | High | **Built together with 5**, not afterwards |
+
+**Order.** Phase 1 Reliability (1 → 2) → Phase 2 Exploration (3 → 4) → Phase 3 Immersion (5 → 6 → 7), with 8 alongside 5.
+
+**Deferred.** Visual fog of war: narration already handles discovery, and reliable world state matters more than hiding parts of the map.
+
+**Notes for the designs (how each fits what exists):**
+- **1 Auditor.** It can only check what is stored. Inventory is not tracked (XP-only decision, D-012/D-014), so inventory checks need inventory tracking first, or stay out. There is a starting point: each save already writes `continuity_warnings` in the DM notes.
+- **2 Diagnostics.** It overlaps with hardening (*structured logging and operational diagnostics*, section 6). Diagnostics must respect audiences: their output goes to `#dm-testing` only.
+- **3 Hidden objects.** This fits the locations registry (D-009). Map positions today exist only per sketch (D-018/D-019), so the design has to decide how a stored object gets a position on a map that is redrawn each time.
+- **4 Passive checks.** This needs each character's passive scores (Perception, Investigation, Insight). That is a small exception to the XP-only decision (D-014), so the owner decides it during the design. Secret rolls can use the existing bot dice (D-013) with results kept for `#dm-testing`.
+- **5–8 Voice.** These are a new cost type. The `api_usage` table exists but isn't used yet; feature 8 should also cover the existing text and image spend (hardening item *cost tracking*).
+
+**Already covered by the MVP** (from the feature summary, with corrections):
+- Character-specific knowledge isolation (D-002, D-004, D-010).
+- Character memory: per-character knowledge records and NPC memory (D-003, D-016). There are no separate player-written journals.
+- Checkpoints, rollback, undo and timelines (D-001, D-011).
+- Grid-based scene maps, stored in context (D-018, D-019).
+- Player onboarding **step 1 only**: the roster lives in the database (D-020). `/player add` is planned, not built.
+
 ## Delivery Roadmap
+
+**MVP = Milestones 1–4 plus onboarding step 1: complete (2026-11-10).** The ⚠️ items left in them are live validations, carried over under *Next Steps*. Milestones 5–6 and the post-MVP roadmap (section 8) are what remains.
 
 ### Milestone 1 — Reliable Campaign Memory
 
@@ -198,22 +235,21 @@ Adding a player today (after step 1): a SQL row in `campaign_players` with `priv
 
 ## Next Steps
 
-Done on 2026-11-09:
-- direct background saves with undo (D-011)
-- XP and levels kept by the bot, including challenges and milestones (D-012, D-014, D-015)
-- monster dice rolled by the bot (D-013)
-- NPC memory (D-016)
-- bounded prompt size (D-017)
-- scene maps (D-018)
+MVP completed 2026-11-10 (D-021). Last additions on 2026-11-09/10: direct background saves with undo (D-011), XP and levels (D-012, D-014, D-015), monster dice (D-013), NPC memory (D-016), bounded prompt size (D-017), scene maps stored in context (D-018, D-019), database roster (D-020).
 
 Decided against: Avrae roll reading (players report rolls in any words, Avrae optional) and full character sheets (XP only).
 
 In order, each agreed as a design before building:
 
-1. **Player onboarding** (Milestone 6). Add a player without config, SQL or hand-written scene setups.
-2. **Hardening** (Milestone 5). Always-on hosting, scheduled backups, cost tracking, automated tests, graceful restart. Later: safe multi-instance operation, including message ordering (section 6).
+1. **Phase 1 Reliability** (section 8): Consistency Auditor, then DM Diagnostics.
+2. **Phase 2 Exploration**: hidden objects, then passive and secret checks.
+3. **Phase 3 Immersion**: voice narration, NPC voices, hybrid mode, with usage tracking and budget controls built alongside.
 
-Smaller open items:
+Backlog, picked up when needed:
+- **Onboarding step 2** (Milestone 6, D-020): `/player add`, when a new player joins.
+- **Hardening** (Milestone 5): always-on hosting (pm2 proposed 2026-11-10, not wanted for now), scheduled backups, automated tests, graceful restart. Later: safe multi-instance operation, including message ordering (section 6). Cost tracking moves into feature 8.
+
+Smaller open items (carried over from the MVP):
 - verify in live play that the watchtower meeting reached the shared record
 - the Looming-only clue test
 - watch NPC memories and compaction in live play after the next saves

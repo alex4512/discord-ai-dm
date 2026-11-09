@@ -2,6 +2,9 @@
 
 **Owner:** Alexis Argyrakopoulos
 
+**Status:** MVP complete (2026-11-10). What's next: the post-MVP roadmap in
+[`AI_DM_CHECKLIST.md`](AI_DM_CHECKLIST.md) (section 8).
+
 A Discord bot that runs a shared D&D 5e (2014 RAW) campaign using OpenAI.
 Campaign memory lives in PostgreSQL. It uses versioned shared checkpoints
 with timelines, so a rollback leaves the abandoned events stored but no
