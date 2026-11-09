@@ -24,14 +24,15 @@ export async function upsertDraft({
   createdBy,
   timelineId,
   boundaryMessageId,
-  boundaryAt
+  boundaryAt,
+  boundarySeq
 }, db = pool) {
   await db.query(`
     INSERT INTO public.campaign_checkpoint_drafts (
       guild_id, checkpoint, based_on_version, created_by,
-      timeline_id, boundary_message_id, boundary_at, created_at
+      timeline_id, boundary_message_id, boundary_at, boundary_seq, created_at
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
     ON CONFLICT (guild_id) DO UPDATE SET
       checkpoint = EXCLUDED.checkpoint,
       based_on_version = EXCLUDED.based_on_version,
@@ -39,6 +40,7 @@ export async function upsertDraft({
       timeline_id = EXCLUDED.timeline_id,
       boundary_message_id = EXCLUDED.boundary_message_id,
       boundary_at = EXCLUDED.boundary_at,
+      boundary_seq = EXCLUDED.boundary_seq,
       created_at = NOW()
   `, [
     guildId,
@@ -47,14 +49,15 @@ export async function upsertDraft({
     createdBy,
     timelineId,
     boundaryMessageId,
-    boundaryAt
+    boundaryAt,
+    boundarySeq
   ]);
 }
 
 export async function getDraftForUpdate(db, guildId) {
   const result = await db.query(`
     SELECT checkpoint, based_on_version, created_by,
-           timeline_id, boundary_message_id, boundary_at
+           timeline_id, boundary_message_id, boundary_at, boundary_seq
     FROM public.campaign_checkpoint_drafts
     WHERE guild_id = $1
     FOR UPDATE
@@ -91,14 +94,15 @@ export async function insertVersion(db, {
   reason,
   timelineId,
   boundaryMessageId = null,
-  boundaryAt = null
+  boundaryAt = null,
+  boundarySeq = null
 }) {
   await db.query(`
     INSERT INTO public.campaign_checkpoint_versions (
       guild_id, version, checkpoint, created_by, reason,
-      timeline_id, boundary_message_id, boundary_at
+      timeline_id, boundary_message_id, boundary_at, boundary_seq
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
   `, [
     guildId,
     version,
@@ -107,7 +111,8 @@ export async function insertVersion(db, {
     reason,
     timelineId,
     boundaryMessageId,
-    boundaryAt
+    boundaryAt,
+    boundarySeq
   ]);
 }
 

@@ -5,19 +5,24 @@ import { UserFacingError } from '../errors/UserFacingError.js';
 import { getDatabaseTime, withGuildTransaction } from '../db/pool.js';
 import * as stateRepo from '../db/repositories/stateRepository.js';
 import * as checkpointRepo from '../db/repositories/checkpointRepository.js';
-import { getHistory, getLatestMessageId, hasMessagesSince } from '../db/repositories/messageRepository.js';
+import {
+  getHighWaterSeq,
+  getHistory,
+  getLatestMessageId,
+  hasMessagesAfter
+} from '../db/repositories/messageRepository.js';
 import { getPlayers } from '../db/repositories/playerRepository.js';
 import { getNpcs, toPublicNpc } from '../db/repositories/npcRepository.js';
 import { generateCheckpoint } from '../ai/dungeonMaster.js';
 import { toCharacterSummary } from '../ai/prompts.js';
 import { getCampaignLegacyCheckpoint } from './campaignService.js';
 
-function campaignChangedSince(guildId, timelineId, since, db) {
-  return hasMessagesSince({
+function campaignChangedAfter(guildId, timelineId, sinceSeq, db) {
+  return hasMessagesAfter({
     guildId,
     timelineId,
     channelIds: config.campaignChannelIds,
-    since
+    sinceSeq
   }, db);
 }
 
@@ -38,8 +43,12 @@ export function listCheckpointVersions(guildId) {
 export async function createCheckpointDraft({ guildId, authorId }) {
   const state = await stateRepo.getState(guildId);
 
-  // Snapshot the boundary before calling the model.
-  const boundaryAt = await getDatabaseTime();
+  // Snapshot the high-water mark before calling the model. The draft covers
+  // exactly the messages in (state.boundary_seq, boundarySeq].
+  const [boundarySeq, boundaryAt] = await Promise.all([
+    getHighWaterSeq(guildId),
+    getDatabaseTime()
+  ]);
 
   const [legacy, mainHistory, players, npcs, boundaryMessageId] =
     await Promise.all([
@@ -48,14 +57,16 @@ export async function createCheckpointDraft({ guildId, authorId }) {
         guildId,
         channelId: config.channels.main,
         timelineId: state.timeline_id,
-        boundaryAt: state.boundary_at
+        afterSeq: state.boundary_seq,
+        untilSeq: boundarySeq
       }),
       getPlayers(guildId),
       getNpcs(guildId),
       getLatestMessageId({
         guildId,
         channelId: config.channels.main,
-        timelineId: state.timeline_id
+        timelineId: state.timeline_id,
+        untilSeq: boundarySeq
       })
     ]);
 
@@ -77,7 +88,7 @@ export async function createCheckpointDraft({ guildId, authorId }) {
     throw new UserFacingError('Campaign changed during draft generation. Retry.');
   }
 
-  if (await campaignChangedSince(guildId, state.timeline_id, boundaryAt)) {
+  if (await campaignChangedAfter(guildId, state.timeline_id, boundarySeq)) {
     throw new UserFacingError(
       'New campaign messages arrived during draft generation. Retry.'
     );
@@ -90,7 +101,8 @@ export async function createCheckpointDraft({ guildId, authorId }) {
     createdBy: authorId,
     timelineId: state.timeline_id,
     boundaryMessageId,
-    boundaryAt
+    boundaryAt,
+    boundarySeq
   });
 
   return { checkpoint, basedOnVersion: state.version };
@@ -121,7 +133,7 @@ export function confirmCheckpointDraft({ guildId, userId }) {
       );
     }
 
-    if (await campaignChangedSince(guildId, state.timeline_id, draft.boundary_at, db)) {
+    if (await campaignChangedAfter(guildId, state.timeline_id, draft.boundary_seq, db)) {
       throw new UserFacingError(
         'New campaign messages arrived after the draft. ' +
         'Use /checkpoint save again.'
@@ -134,7 +146,8 @@ export function confirmCheckpointDraft({ guildId, userId }) {
       guildId,
       checkpoint: draft.checkpoint,
       version,
-      boundaryAt: draft.boundary_at
+      boundaryAt: draft.boundary_at,
+      boundarySeq: draft.boundary_seq
     });
 
     await checkpointRepo.insertVersion(db, {
@@ -145,7 +158,8 @@ export function confirmCheckpointDraft({ guildId, userId }) {
       reason: 'save',
       timelineId: state.timeline_id,
       boundaryMessageId: draft.boundary_message_id,
-      boundaryAt: draft.boundary_at
+      boundaryAt: draft.boundary_at,
+      boundarySeq: draft.boundary_seq
     });
 
     await checkpointRepo.deleteDraft(guildId, db);

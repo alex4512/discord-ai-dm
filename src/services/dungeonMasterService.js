@@ -1,6 +1,6 @@
 import { config } from '../config.js';
 import { getState } from '../db/repositories/stateRepository.js';
-import { getHistory, storeMessage } from '../db/repositories/messageRepository.js';
+import { deleteMessage, getHistory, storeMessage } from '../db/repositories/messageRepository.js';
 import { getPlayers } from '../db/repositories/playerRepository.js';
 import { getNpcs } from '../db/repositories/npcRepository.js';
 import { generateDmReply } from '../ai/dungeonMaster.js';
@@ -26,8 +26,8 @@ export async function playTurn({
   // Main-adventure history is trimmed at the checkpoint boundary.
   // Private channels keep their whole active-timeline history until
   // private checkpoints exist.
-  const historyBoundary =
-    channelId === config.channels.main ? state.boundary_at : null;
+  const historyAfterSeq =
+    channelId === config.channels.main ? state.boundary_seq : null;
 
   const [history, legacyCheckpoint, players, npcs] = await Promise.all([
     testMode
@@ -36,7 +36,7 @@ export async function playTurn({
           guildId,
           channelId,
           timelineId: state.timeline_id,
-          boundaryAt: historyBoundary
+          afterSeq: historyAfterSeq
         }),
     state.version === 0 ? getCampaignLegacyCheckpoint(guildId) : null,
     getPlayers(guildId),
@@ -54,15 +54,12 @@ export async function playTurn({
   });
 
   const playerInput = buildPlayerInput(player, prompt);
+  const base = { guildId, channelId, timelineId: state.timeline_id };
 
-  const reply = await generateDmReply({
-    instructions,
-    input: [...history, { role: 'user', content: playerInput }]
-  });
-
+  // Persist the player's message on receipt (after loading history, so it
+  // is not duplicated in the prompt). This gives it a seq before the model
+  // runs, so a concurrent checkpoint draft sees it.
   if (!testMode) {
-    const base = { guildId, channelId, timelineId: state.timeline_id };
-
     await storeMessage({
       ...base,
       id: messageId,
@@ -70,7 +67,21 @@ export async function playTurn({
       role: 'user',
       content: playerInput
     });
+  }
 
+  let reply;
+  try {
+    reply = await generateDmReply({
+      instructions,
+      input: [...history, { role: 'user', content: playerInput }]
+    });
+  } catch (error) {
+    // No DM answer: drop the orphaned player message so a retry is clean.
+    if (!testMode) await deleteMessage(messageId);
+    throw error;
+  }
+
+  if (!testMode) {
     await storeMessage({
       ...base,
       id: reply.id,

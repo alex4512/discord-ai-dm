@@ -40,7 +40,11 @@ const actions = {
     return (
       `Active checkpoint v${state.version}\n` +
       `Timeline: ${state.timeline_id}\n` +
-      `Boundary: ${state.boundary_at || 'none'}\n` +
+      `Boundary: ${
+        state.boundary_seq == null
+          ? 'none'
+          : `message #${state.boundary_seq} (${new Date(state.boundary_at).toISOString()})`
+      }\n` +
       formatJson(state.checkpoint)
     );
   },

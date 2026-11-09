@@ -3,14 +3,17 @@ import { config } from '../../config.js';
 
 /**
  * Returns the most recent messages of a channel on a timeline, oldest first,
- * capped at `maxChars` of total content. When `boundaryAt` is set, only
- * messages newer than the boundary are included.
+ * capped at `maxChars` of total content.
+ *
+ * - `afterSeq`: only messages after this checkpoint boundary (null = all).
+ * - `untilSeq`: only messages up to this high-water mark (null = no cap).
  */
 export async function getHistory({
   guildId,
   channelId,
   timelineId,
-  boundaryAt = null,
+  afterSeq = null,
+  untilSeq = null,
   maxChars = config.history.maxChars,
   limit = config.history.fetchLimit
 }) {
@@ -18,12 +21,13 @@ export async function getHistory({
     SELECT role, content
     FROM public.messages
     WHERE guild_id = $1
-      AND channel_id = $2
-      AND timeline_id = $3
-      AND ($4::timestamptz IS NULL OR created_at > $4::timestamptz)
-    ORDER BY created_at DESC, id DESC
-    LIMIT $5
-  `, [guildId, channelId, timelineId, boundaryAt, limit]);
+      AND timeline_id = $2
+      AND channel_id = $3
+      AND seq > COALESCE($4::bigint, 0)
+      AND ($5::bigint IS NULL OR seq <= $5::bigint)
+    ORDER BY seq DESC
+    LIMIT $6
+  `, [guildId, timelineId, channelId, afterSeq, untilSeq, limit]);
 
   // Rows are newest first: keep adding until the budget is exhausted.
   const history = [];
@@ -38,6 +42,7 @@ export async function getHistory({
   return history.reverse();
 }
 
+/** Inserts a message and returns its seq (null if the id already existed). */
 export async function storeMessage({
   id,
   guildId,
@@ -47,39 +52,60 @@ export async function storeMessage({
   content,
   timelineId
 }) {
-  await pool.query(`
+  const result = await pool.query(`
     INSERT INTO public.messages (
       id, guild_id, channel_id, author_id, role, content, timeline_id
     )
     VALUES ($1, $2, $3, $4, $5, $6, $7)
     ON CONFLICT (id) DO NOTHING
+    RETURNING seq
   `, [id, guildId, channelId, authorId, role, content, timelineId]);
+
+  return result.rows[0]?.seq ?? null;
 }
 
+export async function deleteMessage(id) {
+  await pool.query('DELETE FROM public.messages WHERE id = $1', [id]);
+}
+
+/** Highest message seq stored for the guild (0 if none): a high-water mark. */
+export async function getHighWaterSeq(guildId, db = pool) {
+  const result = await db.query(`
+    SELECT COALESCE(MAX(seq), 0) AS seq
+    FROM public.messages
+    WHERE guild_id = $1
+  `, [guildId]);
+
+  return result.rows[0].seq;
+}
+
+/** Id of the newest message in a channel up to `untilSeq`. */
 export async function getLatestMessageId({
   guildId,
   channelId,
-  timelineId
+  timelineId,
+  untilSeq = null
 }, db = pool) {
   const result = await db.query(`
     SELECT id
     FROM public.messages
     WHERE guild_id = $1
-      AND channel_id = $2
-      AND timeline_id = $3
-    ORDER BY created_at DESC, id DESC
+      AND timeline_id = $2
+      AND channel_id = $3
+      AND ($4::bigint IS NULL OR seq <= $4::bigint)
+    ORDER BY seq DESC
     LIMIT 1
-  `, [guildId, channelId, timelineId]);
+  `, [guildId, timelineId, channelId, untilSeq]);
 
   return result.rows[0]?.id || null;
 }
 
-/** True if any message in `channelIds` was stored after `since`. */
-export async function hasMessagesSince({
+/** True if any message in `channelIds` was stored after `sinceSeq`. */
+export async function hasMessagesAfter({
   guildId,
   timelineId,
   channelIds,
-  since
+  sinceSeq
 }, db = pool) {
   const result = await db.query(`
     SELECT EXISTS (
@@ -88,9 +114,9 @@ export async function hasMessagesSince({
       WHERE guild_id = $1
         AND timeline_id = $2
         AND channel_id = ANY($3::text[])
-        AND created_at > $4::timestamptz
+        AND seq > COALESCE($4::bigint, 0)
     ) AS changed
-  `, [guildId, timelineId, channelIds, since]);
+  `, [guildId, timelineId, channelIds, sinceSeq]);
 
   return result.rows[0].changed;
 }

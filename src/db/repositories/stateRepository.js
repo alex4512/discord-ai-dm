@@ -2,7 +2,7 @@ import { pool } from '../pool.js';
 
 export async function getState(guildId, db = pool) {
   const result = await db.query(`
-    SELECT checkpoint, version, timeline_id, boundary_at
+    SELECT checkpoint, version, timeline_id, boundary_at, boundary_seq
     FROM public.campaign_state
     WHERE guild_id = $1
   `, [guildId]);
@@ -47,16 +47,18 @@ export async function advanceCheckpoint(db, {
   guildId,
   checkpoint,
   version,
-  boundaryAt
+  boundaryAt,
+  boundarySeq
 }) {
   await db.query(`
     UPDATE public.campaign_state
     SET checkpoint = $2,
         version = $3,
         boundary_at = $4,
+        boundary_seq = $5,
         updated_at = NOW()
     WHERE guild_id = $1
-  `, [guildId, checkpoint, version, boundaryAt]);
+  `, [guildId, checkpoint, version, boundaryAt, boundarySeq]);
 }
 
 /** Restores a checkpoint onto a brand-new timeline (after a rollback). */
@@ -72,6 +74,7 @@ export async function resetToTimeline(db, {
         version = $3,
         timeline_id = $4,
         boundary_at = NULL,
+        boundary_seq = NULL,
         updated_at = NOW()
     WHERE guild_id = $1
   `, [guildId, checkpoint, version, timelineId]);
