@@ -4,7 +4,7 @@
 **Repository:** https://github.com/alex4512/discord-ai-dm  
 **Stack:** Node.js · Discord.js · OpenAI Responses API · PostgreSQL · D&D 5e (2014 RAW)  
 **Campaign:** Dunmere / Northern Marches · Kraavok & Looming Shade  
-**Status (2026-11-09):** Two players live in one shared campaign. Memory, per-character knowledge, the NPC/location/chronicle world and scene images all work. **Next:** character sheets, then Avrae roll reading, then easy onboarding for new players (see *Next Steps*).
+**Status (2026-11-09):** Two players live in one shared campaign. Memory with save/undo/rollback, per-character knowledge, the NPC/location/chronicle world with NPC memory, XP and levels, monster dice, scene images and scene maps all work. **Next:** player onboarding, then hardening (see *Next Steps*).
 
 > **Status key:** `[x]` implemented or observed working · `[ ]` pending · `⚠️` partially implemented / needs validation.
 >
@@ -173,11 +173,12 @@ Goal: a new player joins without code or `.env` changes and without SQL. Propose
 - [x] Implement safe private-history checkpoint boundaries
 - ⚠️ Run end-to-end secrecy and information-sharing tests — secrecy passed in Discord for Kraavok (token, Orren, Voss, rollback); Looming's first private session passed live; in-game sharing in progress (meeting played; check after the next save)
 
-### Milestone 3 — Character State & Avrae **(next)**
+### Milestone 3 — Character State & Dice
 
-- [ ] Authoritative character sheets and resource persistence
-- [ ] Avrae roll/result integration
-- [ ] Rules and resource validation
+- [x] Character progress: XP and level kept by the bot, versioned with the story (D-014, D-015). Full sheets (HP, resources, items) are not planned; on request only
+- [x] Dice: players roll however they like and report it (Avrae optional); monster and NPC dice rolled by the bot (D-013)
+- ~~Avrae roll/result integration~~ Dropped (user decision)
+- ~~Rules and resource validation~~ Not planned without full sheets
 
 ### Milestone 4 — Persistent World
 
@@ -191,6 +192,8 @@ Goal: a new player joins without code or `.env` changes and without SQL. Propose
 - [ ] Cost controls, logging, and monitoring
 - [ ] Authorization, concurrency safety, and automated tests
 - [ ] Always-on hosting
+- [ ] Graceful restart (drain in-flight work, `/restart`, catch-up of missed mentions)
+- [ ] Safe multi-instance operation, including message ordering
 
 ### Milestone 6 — Player Onboarding
 
@@ -200,16 +203,26 @@ Goal: a new player joins without code or `.env` changes and without SQL. Propose
 
 ## Next Steps
 
-Done on 2026-11-09: direct background saves with undo (D-011); XP and levels kept by the bot, including challenges and milestones (D-012, D-014, D-015); monster dice rolled by the bot (D-013). Avrae roll reading was dropped: players report rolls in any words and Avrae is optional.
+Done on 2026-11-09:
+- direct background saves with undo (D-011)
+- XP and levels kept by the bot, including challenges and milestones (D-012, D-014, D-015)
+- monster dice rolled by the bot (D-013)
+- NPC memory (D-016)
+- bounded prompt size (D-017)
+- scene maps (D-018)
+
+Decided against: Avrae roll reading (players report rolls in any words, Avrae optional) and full character sheets (XP only).
 
 In order, each agreed as a design before building:
 
-1. ~~**NPC memory**~~ Done (D-016).
-2. **Character sheets: XP only** (user decision 2026-11-09). A character is a name plus an XP count; level follows from XP (D-014, done). HP, AC, conditions, resources and items are **not** tracked; players state them when relevant, and anything more is added only on request.
-3. **Player onboarding** (Milestone 6). Add a player without config, SQL or hand-written scene setups.
-4. **Hardening** (Milestone 5). Always-on hosting, scheduled backups, cost tracking and automated tests. Later: safe multi-instance operation, including message ordering (see section 6).
+1. **Player onboarding** (Milestone 6). Add a player without config, SQL or hand-written scene setups.
+2. **Hardening** (Milestone 5). Always-on hosting, scheduled backups, cost tracking, automated tests, graceful restart. Later: safe multi-instance operation, including message ordering (section 6).
 
-Smaller open items: verify in live play that the watchtower meeting reached the shared record; the Looming-only clue test; watch NPC memories in live play after the next save; a LICENSE choice.
+Smaller open items:
+- verify in live play that the watchtower meeting reached the shared record
+- the Looming-only clue test
+- watch NPC memories and compaction in live play after the next saves
+- a LICENSE choice
 
 ---
 

@@ -127,18 +127,26 @@ src/
 │       ├── checkpointRepository.js
 │       ├── messageRepository.js
 │       ├── playerRepository.js
+│       ├── imageRepository.js
+│       ├── xpRepository.js   # XP award ledger (D-014)
 │       └── npcRepository.js
 ├── ai/
 │   ├── openaiClient.js
 │   ├── prompts.js            # DM rules, checkpoint instructions, prompt builders
-│   ├── checkpointSchema.js   # Strict JSON schemas: shared, character, DM notes
-│   ├── dungeonMaster.js      # OpenAI calls (DM reply, isolated checkpoint parts)
+│   ├── checkpointSchema.js   # Strict JSON schemas: shared, character, DM notes, world
+│   ├── mapSchema.js          # Strict JSON schema for /map scene sketches
+│   ├── dungeonMaster.js      # OpenAI calls: DM reply (+ roll_dice tool), save parts, map
 │   └── images.js             # Picture prompt + image generation
 ├── services/                 # Business logic; no Discord types
 │   ├── audience.js           # Channel -> audience; per-audience filtering
 │   ├── worldService.js       # Author notes, world import (new versions)
 │   ├── imageService.js       # Arrival and /image pictures, daily cap
-│   ├── registry.js           # Pure registry/chronicle merge helpers
+│   ├── mapService.js         # /map: scene as data from the channel's own view
+│   ├── mapRender.js          # Map data -> PNG battle-map or text grid
+│   ├── dice.js               # Real dice for monsters/NPCs (crypto RNG)
+│   ├── xp.js                 # XP tags: CR and challenge pricing
+│   ├── progressService.js    # XP totals, levels, save folding
+│   ├── registry.js           # Pure registry/chronicle/NPC-memory merge helpers
 │   ├── campaignService.js
 │   ├── checkpointService.js
 │   └── dungeonMasterService.js
@@ -147,8 +155,9 @@ src/
     ├── access.js             # Guild/channel/ownership checks, mention parsing
     ├── reply.js              # Chunked replies without pings
     ├── checkpointView.js     # Channel -> audience, audience-safe rendering
+    ├── xpAnnounce.js         # XP award lines, private totals, level-ups
     ├── commands/checkpointCommand.js
-    ├── commands/registryCommand.js  # /npc, /location, /chronicle
+    ├── commands/registryCommand.js  # /npc, /location, /chronicle, /xp
     └── handlers/messageCreate.js
 migrations/                   # Numbered SQL schema migrations
 scripts/migrate.js            # `npm run migrate` entry point
@@ -187,8 +196,11 @@ Looming Shade.
 
 ## Caveats
 
-- No character sheets yet (XP and level are tracked; HP, conditions and
-  resources not yet). Players report their rolls to the DM.
+- Character state is XP and level only (by design). Players state HP, AC,
+  conditions and items when relevant and report their own rolls.
+- Restarting the bot cuts off any reply or save in progress, and mentions
+  sent while it is down are not answered. Restart when nobody is mid-turn.
+  Graceful restart is on the roadmap.
 - Adding a player is manual: `.env`, a SQL row, the Discord channel and
   code that names the characters. See *Player Onboarding* in
   [`AI_DM_CHECKLIST.md`](AI_DM_CHECKLIST.md), which also lists the next
@@ -196,6 +208,7 @@ Looming Shade.
 - Each DM reply only gets what its channel's audience may see (D-004).
   Character knowledge, DM notes and NPC facts are filtered in code. Only
   DM-authored NPC author notes rely on the model not revealing them (D-007).
-- No usage or budget accounting.
+- No usage or budget accounting (images have a daily cap; prompt size is
+  bounded by compaction, D-017).
 - Treat model output as narrative, not as proof that data isolation has
   been audited.

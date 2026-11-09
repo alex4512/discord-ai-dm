@@ -6,13 +6,17 @@ broken**: every upgrade has a verification step and a documented way back.
 ## Upgrading to a new commit
 
 ```bash
-# 1. Stop the bot (Ctrl+C or stop the service).
+# 1. Stop the bot (Ctrl+C or stop the service). Pick a moment when nobody
+#    is waiting for a reply or a save: shutdown is immediate, so in-flight
+#    work is cut off, and mentions sent while the bot is down get no answer.
+#    A cut-off save is harmless (nothing is written); just save again.
 
 # 2. Back up the database (outside the repo; never commit dumps).
 #    pg_dump reads PGHOST/PGUSER/PGPASSWORD/PGDATABASE from the environment.
 pg_dump -Fc -f ../backups/dnd_campaign_$(date +%Y%m%d-%H%M%S).dump
 
-# 3. Update code and dependencies.
+# 3. Update code and dependencies (needed when package.json changed,
+#    e.g. @resvg/resvg-js for /map since D-018).
 git pull
 npm install
 
