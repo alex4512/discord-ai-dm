@@ -51,6 +51,7 @@ commit message.
 | `0003_knowledge_partitions` | `character_knowledge`, `dm_notes` on state, versions, drafts | yes | restore backup, or drop the added columns |
 | `0004_npc_partition` | `npcs` on state, versions, drafts | yes | restore backup, or drop the added columns |
 | `0005_locations_chronicle` | `locations`, `chronicle` on state, versions, drafts | yes | restore backup, or drop the added columns |
+| `0006_scene_images` | new tables `image_generations`, `scene_images`, `scene_arrivals` | yes | drop the three tables |
 
 Commits that add no migration (for example the D-004 prompt change) only
 need a restart. Roll them back with `git checkout <previous-commit>` and a

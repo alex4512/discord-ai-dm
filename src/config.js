@@ -98,6 +98,18 @@ function loadConfig(env = process.env) {
       checkpointMaxOutputTokens: 3500
     }),
 
+    // Scene images (D-008). Never generated automatically except once per
+    // place and audience on first arrival; all generations share one cap.
+    images: Object.freeze({
+      model: env.IMAGE_MODEL || 'gpt-image-1-mini',
+      size: env.IMAGE_SIZE || '1536x1024',
+      quality: env.IMAGE_QUALITY || 'medium',
+      dailyLimit: parsePositiveInt(env, 'IMAGE_DAILY_LIMIT', 10),
+      style: env.IMAGE_STYLE ||
+        'Painterly dark-fantasy illustration, muted earthy colours, ' +
+        'atmospheric lighting, no text or lettering.'
+    }),
+
     history: Object.freeze({
       maxChars: parsePositiveInt(env, 'HISTORY_MAX_CHARS', 18000),
       fetchLimit: 100

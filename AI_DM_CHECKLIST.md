@@ -101,6 +101,7 @@
 - [x] Per-guild in-process concurrency guard
 - [x] Database migrations and `dnd_bot` permissions applied — tracked in `migrations/`, `npm run migrate`
 - [ ] OpenAI token usage and cost tracking (`api_usage` table exists)
+- [x] Scene images: on first arrival + `/image`, per-server daily cap, every generation logged (D-008)
 - [ ] API rate limits and spending safeguards
 - [ ] PostgreSQL backup schedule and restore drill
 - [ ] Structured logging and operational diagnostics

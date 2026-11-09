@@ -14,6 +14,19 @@ import {
   readersOf
 } from './audience.js';
 
+const SCENE_TAG = /\[\[\s*SCENE\s*:\s*([^\]\n]+?)\s*\]\]/gi;
+
+/**
+ * Splits the DM's hidden scene tag (DM rule 15, D-008) from the reply.
+ * Returns the text players see and the last named scene, if any.
+ */
+export function extractSceneTag(text) {
+  const matches = [...String(text).matchAll(SCENE_TAG)];
+  const scene = matches.length ? matches.at(-1)[1].trim() : null;
+  const clean = String(text).replace(SCENE_TAG, '').replace(/\n{3,}/g, '\n\n').trim();
+  return { text: clean || (scene ? `*The scene shifts to ${scene}.*` : ''), scene };
+}
+
 /**
  * Runs one Dungeon Master turn for a player message and persists both
  * sides of the exchange (except in the test channel).
@@ -84,11 +97,15 @@ export async function playTurn({
   }
 
   let reply;
+  let scene;
   try {
-    reply = await generateDmReply({
+    const raw = await generateDmReply({
       instructions,
       input: [...history, { role: 'user', content: playerInput }]
     });
+    const parsed = extractSceneTag(raw.text);
+    reply = { ...raw, text: parsed.text };
+    scene = parsed.scene;
   } catch (error) {
     // No DM answer: drop the orphaned player message so a retry is clean.
     if (!testMode) await deleteMessage(messageId);
@@ -107,6 +124,8 @@ export async function playTurn({
 
   return {
     text: reply.text,
+    scene,
+    audience,
     version: state.version,
     timelineId: state.timeline_id,
     testMode

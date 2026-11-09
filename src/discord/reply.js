@@ -31,6 +31,14 @@ export function splitIntoChunks(text, size = DISCORD_CHUNK_SIZE) {
   return chunks;
 }
 
+/** Posts an image to a channel, with no pings. */
+export async function sendImage(channel, image, name = 'scene.jpg') {
+  await channel.send({
+    files: [{ attachment: image, name }],
+    allowedMentions: { parse: [] }
+  });
+}
+
 /**
  * Replies to a message, splitting long content across several messages.
  * Mentions in the content are never resolved (no accidental pings).

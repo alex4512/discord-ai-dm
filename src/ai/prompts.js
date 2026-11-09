@@ -49,6 +49,11 @@ CAMPAIGN MEMORY RULES:
    bookkeeping. Speak about the world, or plainly out-of-character.
 14. The CHRONICLE lists established past events known in this channel.
    Treat them as canon and stay consistent with them.
+15. When your reply moves the scene to a different named place (a
+   character arrives somewhere, or the scene cuts to a new location),
+   end the reply with one final line, exactly: [[SCENE: <place name>]]
+   using the place's established name if it has one. Otherwise do not
+   add that line. Players never see it.
 
 For OOC questions, answer without advancing the narrative.
 
@@ -329,3 +334,21 @@ Player message:
 ${prompt}
 `;
 }
+
+export const IMAGE_PROMPT_INSTRUCTIONS = `
+Write a prompt for an image-generation model that depicts one scene from a
+D&D 5e fantasy campaign.
+
+Use ONLY the supplied material. Do not invent landmarks, creatures or
+characters beyond it.
+
+- Depict the place, mood, light and weather.
+- Show player characters only if the request asks for them, and then only
+  as described in the material.
+- Never include text, letters, writing, labels, banners or map legends.
+- Keep it PG-13: no gore.
+- One paragraph, at most 90 words. Do not mention any art style; the style
+  is added separately.
+
+Return only the prompt text.
+`;

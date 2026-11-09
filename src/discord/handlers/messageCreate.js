@@ -1,8 +1,9 @@
 import { UserFacingError } from '../../errors/UserFacingError.js';
 import { getPlayer } from '../../db/repositories/playerRepository.js';
 import { playTurn } from '../../services/dungeonMasterService.js';
+import { arrivalImage, requestedImage } from '../../services/imageService.js';
 import { isAllowedMessage, isDmMentioned, stripDmMention } from '../access.js';
-import { reply } from '../reply.js';
+import { reply, sendImage } from '../reply.js';
 import { handleCheckpointCommand, parseCheckpointCommand } from '../commands/checkpointCommand.js';
 import { handleWorldCommand } from '../commands/registryCommand.js';
 
@@ -10,6 +11,16 @@ import { handleWorldCommand } from '../commands/registryCommand.js';
 // share campaign state and must not interleave.
 const busyGuilds = new Set();
 
+// Images run after the request lock is released (they don't touch campaign
+// state and can take ~30 s), one at a time per guild to bound spend.
+const paintingGuilds = new Set();
+
+const IMAGE_COMMAND = /^\/image(?:\s+([\s\S]+))?$/i;
+
+/**
+ * Handles one mention while the guild lock is held. May return a follow-up
+ * task (image generation) to run after the lock is released.
+ */
 async function handleRequest(message, prompt) {
   const guildId = message.guild.id;
 
@@ -18,17 +29,35 @@ async function handleRequest(message, prompt) {
   const player = await getPlayer(guildId, message.author.id);
 
   if (!player) {
-    return reply(message, 'Your Discord account is not a registered player.');
+    await reply(message, 'Your Discord account is not a registered player.');
+    return null;
   }
 
   const checkpointAction = parseCheckpointCommand(prompt);
 
   if (checkpointAction) {
-    return handleCheckpointCommand(message, checkpointAction, player);
+    await handleCheckpointCommand(message, checkpointAction, player);
+    return null;
   }
 
   if (await handleWorldCommand(message, prompt, player)) {
-    return;
+    return null;
+  }
+
+  const imageMatch = prompt.trim().match(IMAGE_COMMAND);
+
+  if (imageMatch) {
+    await reply(message, '*The scene takes shape...*');
+    return async () => {
+      const image = await requestedImage({
+        guildId,
+        channelId: message.channel.id,
+        userId: message.author.id,
+        player,
+        request: imageMatch[1]?.trim() || ''
+      });
+      await sendImage(message.channel, image);
+    };
   }
 
   const turn = await playTurn({
@@ -48,8 +77,47 @@ async function handleRequest(message, prompt) {
     `channel=${message.channel.id} ` +
     `version=${turn.version} ` +
     `timeline=${turn.timelineId} ` +
-    `test=${turn.testMode}`
+    `test=${turn.testMode}` +
+    (turn.scene ? ` scene="${turn.scene}"` : '')
   );
+
+  if (!turn.scene || turn.testMode) return null;
+
+  // First arrival somewhere: establishing image (D-008). Never fails the turn.
+  return async () => {
+    const image = await arrivalImage({
+      guildId,
+      channelId: message.channel.id,
+      userId: message.author.id,
+      timelineId: turn.timelineId,
+      audience: turn.audience,
+      scene: turn.scene,
+      replyText: turn.text
+    });
+    if (image) await sendImage(message.channel, image);
+  };
+}
+
+async function runImageTask(message, task) {
+  const guildId = message.guild.id;
+
+  if (paintingGuilds.has(guildId)) {
+    return; // another image is being painted for this guild; skip quietly
+  }
+
+  paintingGuilds.add(guildId);
+  try {
+    await message.channel.sendTyping().catch(() => {});
+    await task();
+  } catch (error) {
+    if (error instanceof UserFacingError) {
+      await reply(message, error.message).catch(() => {});
+    } else {
+      console.error('Image error:', error);
+    }
+  } finally {
+    paintingGuilds.delete(guildId);
+  }
 }
 
 export async function onMessageCreate(message) {
@@ -78,8 +146,9 @@ export async function onMessageCreate(message) {
 
   busyGuilds.add(guildId);
 
+  let followUp = null;
   try {
-    await handleRequest(message, prompt);
+    followUp = await handleRequest(message, prompt);
   } catch (error) {
     if (error instanceof UserFacingError) {
       await reply(message, error.message);
@@ -91,4 +160,6 @@ export async function onMessageCreate(message) {
   } finally {
     busyGuilds.delete(guildId);
   }
+
+  if (followUp) await runImageTask(message, followUp);
 }

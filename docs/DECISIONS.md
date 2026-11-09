@@ -367,3 +367,51 @@ joins a channel as the characters learn it in play.
 Postgres arrays, not JSON, so the chronicle failed to save. All partitions
 are now serialized with `JSON.stringify` explicitly
 (`src/db/partitions.js`).
+
+---
+
+## D-008: Scene images on first arrival and on request
+
+**Date:** 2026-11-09 · **Status:** accepted · **Migration:** `0006_scene_images.sql` · **Code:** `src/services/imageService.js`, `src/ai/images.js`
+
+**Context.** The user wanted generated images when the scene changes (a new
+area or map), not on every reply. Image generation costs much more per call
+than a text turn.
+
+**Decision (agreed with the user, option 3).**
+- **Arrival trigger.** DM rule 15: when a reply moves the scene to a
+  different named place, the DM ends it with a hidden `[[SCENE: <place>]]`
+  line. The bot strips it before posting and before storing history, so
+  there's no extra AI call per turn.
+- **Once per place and audience.** On the first arrival of a channel's
+  audience at a place on the current timeline (`scene_arrivals`), the bot
+  posts one establishing image after the reply. Images are stored per
+  place and per audience (`scene_images`: shared, or character:\<name\>) and
+  reused for free, for example after a rollback starts a new timeline.
+- **`/image [what to show]`.** A picture of the current scene, or of the
+  request, in that channel.
+- **Images post only in the channel where the arrival or request happened**
+  (user decision). Picture prompts use only that channel's material: the
+  DM reply just posted there, its recent history, and the place's
+  *visual* fields (description, state) as that audience knows them. Past
+  facts and author notes are never used. A cheap text call writes the
+  picture prompt, then the house style is prepended.
+- **Cost controls.** One rolling 24-hour limit per server for arrivals and
+  requests together (`IMAGE_DAILY_LIMIT`, default 10). Past it, arrivals
+  are skipped silently and `/image` says so. Every generation is logged in
+  `image_generations` with its prompt. Images run after the request lock is
+  released, one at a time per server, and an image failure never fails the
+  turn.
+- **Style: one fixed house style for now** (user decision, to be tweaked
+  later): `IMAGE_STYLE`, default "Painterly dark-fantasy illustration,
+  muted earthy colours, atmospheric lighting, no text or lettering."
+- **Model.** `IMAGE_MODEL`, default `gpt-image-1-mini`, `IMAGE_QUALITY` medium,
+  `IMAGE_SIZE` 1536x1024, JPEG output (about 130 KB versus 2 MB as PNG). On
+  2026-11-09 this account had no `gpt-image-1` or `dall-e-3`. It lists the
+  `gpt-image-1-mini`, `-1.5`, `-2`, `-2.5-*` and `-2.6-*` models, so the
+  DALL·E code path was removed. Check OpenAI's pricing before raising the
+  model or quality.
+
+**Not game state.** Images aren't versioned and aren't part of the story
+history. A rollback resets arrivals (new timeline), and stored images are
+reused.

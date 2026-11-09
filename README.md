@@ -59,6 +59,13 @@ appears there once they've learned something about it.
 | `/npc note <name>: <text>`, `/location note <name>: <text>` | testing | Add DM-authored truth (creates the entry if new) as a new version |
 | `/chronicle` | all | The last 20 events this channel may know |
 
+### Scene images
+
+When the scene moves somewhere new for the first time, the DM posts one
+establishing image in that channel. `@Dungeon Master /image [what to show]`
+paints the current scene on request. Images are capped per server per day
+(`IMAGE_DAILY_LIMIT`) and only use what that channel may see (D-008).
+
 To import NPCs, locations and past events once, run
 `node scripts/import-world.js data/<file>.local.json`.
 Seed files hold canon and DM secrets, and the repo is public, so keep them in
@@ -88,10 +95,12 @@ src/
 │   ├── openaiClient.js
 │   ├── prompts.js            # DM rules, checkpoint instructions, prompt builders
 │   ├── checkpointSchema.js   # Strict JSON schemas: shared, character, DM notes
-│   └── dungeonMaster.js      # OpenAI calls (DM reply, isolated checkpoint parts)
+│   ├── dungeonMaster.js      # OpenAI calls (DM reply, isolated checkpoint parts)
+│   └── images.js             # Picture prompt + image generation
 ├── services/                 # Business logic; no Discord types
 │   ├── audience.js           # Channel -> audience; per-audience filtering
 │   ├── worldService.js       # Author notes, world import (new versions)
+│   ├── imageService.js       # Arrival and /image pictures, daily cap
 │   ├── registry.js           # Pure registry/chronicle merge helpers
 │   ├── campaignService.js
 │   ├── checkpointService.js
