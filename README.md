@@ -39,12 +39,10 @@ knowledge** (that character's private channel), and **DM notes**
 | Command | Where | Effect |
 | --- | --- | --- |
 | `/checkpoint show` | all | Show the active checkpoint |
-| `/checkpoint draft` | all | Show the pending draft |
 | `/checkpoint versions` | main, testing | List the last 20 versions |
-| `/checkpoint save` | main | Draft a new checkpoint from all channels since the last boundary (short reply; review with `/checkpoint draft`) |
-| `/checkpoint confirm` | main | Promote your draft to the active checkpoint |
-| `/checkpoint cancel` | main | Discard your draft |
-| `/checkpoint rollback <n>` | main | Restore version `n` (all parts, including NPCs) on a new timeline |
+| `/checkpoint save` | main | Summarize all channels since the last boundary into a new version, in the background (play continues; D-011) |
+| `/checkpoint undo` | main | Undo the last save: previous summary restored, **all play kept** for the next save |
+| `/checkpoint rollback <n>` | main | Go back in the story: restore version `n` (all parts, including NPCs) on a new timeline; later play is abandoned |
 
 ### World commands
 

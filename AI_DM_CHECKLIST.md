@@ -30,8 +30,7 @@
 
 - [x] Shared campaign state in PostgreSQL
 - [x] Structured JSON checkpoint draft generation
-- [x] Draft review before confirmation
-- [x] Checkpoint save / confirm / cancel commands
+- [x] Saves go live directly, in the background, while play continues; `/checkpoint undo` redoes a bad summary without losing play (D-011; replaced draft/confirm/cancel)
 - [x] Checkpoint version history and inspection
 - [x] Rollback to an earlier checkpoint
 - [x] New timeline UUID after rollback
@@ -45,7 +44,7 @@
 - [x] Checkpoint generation accounts for events from all three channels — shared from main; private events go to character knowledge and DM notes (D-001)
 - ⚠️ Full rollback test with distinct events in main and both private channels — passed 2026-11-09 for main + Kraavok private (see manual test below); Looming private pending
 - ⚠️ Robust transactional consistency across multiple bot instances — `messages.seq` high-water marks and advisory locks; the busy guard is still in-process only
-- [ ] Explicit checkpoint editing workflow (beyond regenerate / cancel / confirm)
+- [ ] Explicit checkpoint editing workflow (beyond undo + save again)
 
 **Known limitation:** DM-authored NPC `author_notes` reach the prompts of channels whose characters know that NPC (spoiler risk only, D-007 revision). Everything learned in play is filtered per audience in code (D-004, D-007).
 
@@ -65,7 +64,7 @@
 - [x] Make checkpoint previews / `show` safe for shared-channel visibility (D-002)
 - [x] Looming Shade's first private session: own knowledge record created, nothing leaked to Kraavok or main (live, 2026-11-09)
 - ⚠️ Test: Looming discovers a clue that Kraavok does not know — not yet checked explicitly
-- ⚠️ Test: Kraavok and Looming meet and exchange selected information — they met at the eastern watchtower and Kraavok told his story in character (live, 2026-11-09); check the shared record after the next confirmed save
+- ⚠️ Test: Kraavok and Looming meet and exchange selected information — they met at the eastern watchtower and Kraavok told his story in character (live, 2026-11-09); check the shared record after the next save
 - [ ] Test: rollback preserves knowledge separation across channels
 
 **Design goal:** One consistent world, two distinct player perspectives.
@@ -111,13 +110,13 @@
 - [x] Database migrations and `dnd_bot` permissions applied — tracked in `migrations/`, `npm run migrate`
 - [ ] OpenAI token usage and cost tracking (`api_usage` table exists)
 - [x] Checkpoint save output cap raised to 12000 tokens (`CHECKPOINT_MAX_OUTPUT_TOKENS`); a truncated response gives a clear error and saves nothing
-- [x] Short `/checkpoint save` reply in the game channel; full draft via `/checkpoint draft`
+- [x] Short `/checkpoint save` replies in the game channel ("Saving…", then "Saved as vN")
 - [x] Scene images: on first arrival + `/image`, per-server daily cap, every generation logged (D-008)
 - [ ] API rate limits and spending safeguards
 - [ ] PostgreSQL backup schedule and restore drill
 - [ ] Structured logging and operational diagnostics
-- [x] Checkpoint/rollback authorization and approval policy — every registered player may save/rollback; only the creator confirms a draft (D-005)
-- [ ] Automated tests for draft, confirm, versions, and rollback
+- [x] Checkpoint/rollback authorization and approval policy — every registered player may save, undo and roll back (D-005, D-011)
+- [ ] Automated tests for save, undo, versions, and rollback
 - [ ] Integration tests for private-channel isolation and knowledge leaks
 - ⚠️ Graceful shutdown, reconnect behavior, and recovery tests — graceful shutdown done; recovery procedures in `docs/OPERATIONS.md`
 - [ ] Concurrency testing around drafts and incoming messages
@@ -159,7 +158,7 @@ Goal: a new player joins without code or `.env` changes and without SQL. Propose
 - [x] Incorporate private-channel events into DM world awareness (D-004, D-006)
 - [x] Build spoiler-safe prompt and checkpoint views (D-002, D-004)
 - [x] Implement safe private-history checkpoint boundaries
-- ⚠️ Run end-to-end secrecy and information-sharing tests — secrecy passed in Discord for Kraavok (token, Orren, Voss, rollback); Looming's first private session passed live; in-game sharing in progress (meeting played, confirm after next save)
+- ⚠️ Run end-to-end secrecy and information-sharing tests — secrecy passed in Discord for Kraavok (token, Orren, Voss, rollback); Looming's first private session passed live; in-game sharing in progress (meeting played; check after the next save)
 
 ### Milestone 3 — Character State & Avrae **(next)**
 
@@ -204,7 +203,7 @@ In order, each agreed as a design before building:
 ## Manual Regression Test: Checkpoint Rollback
 
 1. In `#main-adventure`, mention the DM and run `/checkpoint save`.
-2. Review the draft carefully; run `/checkpoint confirm`.
+2. Wait for "Saved as vN"; review with `/checkpoint show` in `#dm-testing` (`/checkpoint undo` if the summary is wrong).
 3. Use `/checkpoint show` and `/checkpoint versions` to verify persistence.
 4. Advance the story with a clearly identifiable event, then save another checkpoint.
 5. Run `/checkpoint rollback <target-version>`.
@@ -225,15 +224,15 @@ The first run of steps 12–14 **failed**: the token leaked into `#main-adventur
 | 1 | `#dm-testing` | `/checkpoint show` | Active version shown; all parts visible |
 | 2 | `#kraavok-private` | A private discovery, e.g. *finds a carved bone token, hides it in his boot* | DM narrates it |
 | 3 | `#main-adventure` | Any in-character question | Reply never mentions the private discovery |
-| 4 | `#main-adventure` | `/checkpoint save` | Shared world only; **discovery absent**; "Character knowledge records generated: Kraavok" |
-| 5 | `#dm-testing` | `/checkpoint draft` | Shared + Kraavok knowledge (discovery present) + DM notes (discovery as secret, `known_by: Kraavok`) |
-| 6 | `#kraavok-private` | `/checkpoint draft` | Shared + own knowledge; **no DM notes** section |
-| 7 | `#main-adventure` | `/checkpoint confirm` | New version confirmed |
+| 4 | `#main-adventure` | `/checkpoint save` | "Saved as vN. Knowledge updated for: Kraavok" |
+| 5 | `#dm-testing` | `/checkpoint show` | Shared + Kraavok knowledge (discovery present) + DM notes (discovery as secret, `known_by: Kraavok`) |
+| 6 | `#kraavok-private` | `/checkpoint show` | Shared + own knowledge; **no DM notes** section |
+| 7 | `#main-adventure` | — | (no confirm step since D-011) |
 | 8 | `#main-adventure` | `/checkpoint show` | Boundary `message #N`; discovery absent |
 | 9 | `#main-adventure` | `/checkpoint rollback <previous>` | New version + new timeline; all parts restored |
 | 10 | `#kraavok-private` | `/checkpoint show` | Own knowledge back to the restored version's (e.g. nothing recorded yet) |
 | 11 | `#dm-testing` | `/checkpoint versions` | Append-only history shows save + rollback |
-| 12 | `#kraavok-private` | After a confirmed save containing the discovery: *(OOC) What is hidden in Kraavok's boot, and what does he remember about Mother Vael?* | Knows both (from the knowledge record, not raw history) |
+| 12 | `#kraavok-private` | After a save containing the discovery: *(OOC) What is hidden in Kraavok's boot, and what does he remember about Mother Vael?* | Knows both (from the knowledge record, not raw history) |
 | 13 | `#main-adventure` | *(OOC) What is hidden in Kraavok's boot?* | **Does not know.** Any mention is a leak: roll back immediately |
 | 14 | `#dm-testing` | *What is hidden in Kraavok's boot?* | Knows |
 
@@ -252,10 +251,10 @@ good version).
 | # | Who / channel | Action | Check (in `#dm-testing`) |
 |---|---|---|---|
 | 1 | Looming, `#looming-private` | Plays normally, including at least one private discovery and, ideally, a visible change somewhere (a forced lock, a moved object) | — |
-| 2 | Anyone, `#main-adventure` | `/checkpoint save`, `/checkpoint confirm` | `/checkpoint draft` (in `#dm-testing`): the shared part has **no** trace of Looming's discovery |
+| 2 | Anyone, `#main-adventure` | `/checkpoint save` | `/checkpoint show` (in `#dm-testing`): the shared part has **no** trace of Looming's discovery |
 | 3 | DM, `#dm-testing` | `/checkpoint show` | `Looming Shade: private knowledge` exists (first record, D-003); discovery entries are `known_by: ["Looming Shade"]`; any visible change is in `observable_world_state` **without names** |
 | 4 | Kraavok, `#kraavok-private` | Asks about the place Looming changed, if he goes there | The DM describes the change, **not** who did it, and nothing of Looming's discovery |
 | 5 | Kraavok, `#main-adventure` | Plays normally | No trace of Looming's discovery |
-| 6 | Later, when they meet and Looming **tells** Kraavok in `#main-adventure`, then save + confirm | `#dm-testing` `/checkpoint show` | The told fact is now in the shared world, and its DM-notes entries list both characters |
+| 6 | Later, when they meet and Looming **tells** Kraavok in `#main-adventure`, then save | `#dm-testing` `/checkpoint show` | The told fact is now in the shared world, and its DM-notes entries list both characters |
 
 **Command convention:** Send `@Dungeon Master /checkpoint ...` as an ordinary Discord message. Native slash commands are deliberately not enabled.

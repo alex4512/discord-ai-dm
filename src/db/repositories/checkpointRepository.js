@@ -148,7 +148,8 @@ export async function insertVersion(db, {
 
 export async function getVersion(guildId, version, db = pool) {
   const result = await db.query(`
-    SELECT ${PARTITION_COLUMNS}
+    SELECT ${PARTITION_COLUMNS}, version, reason, timeline_id,
+           boundary_message_id, boundary_at, boundary_seq
     FROM public.campaign_checkpoint_versions
     WHERE guild_id = $1
       AND version = $2

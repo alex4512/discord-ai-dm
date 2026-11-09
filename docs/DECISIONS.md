@@ -190,7 +190,8 @@ same way is the next step if NPC secrets get populated.
 
 **Context.** The handover flagged that any registered player can run
 `/checkpoint save` and `rollback`. Only the draft creator can confirm their
-own draft.
+own draft. *(Drafts and confirm were removed in D-011; every registered
+player may save, undo and roll back.)*
 
 **Decision.** Keep it that way. No extra approval step.
 
@@ -431,3 +432,17 @@ reused.
 - **Saves.** The shared-checkpoint generator gets names only. The checkpoint and character-knowledge instructions forbid recording player characters' class, level or game statistics.
 
 **Not done (user decision: fix forward only).** v16 still holds "Kraavok is a level 4 Barbarian" in the shared checkpoint and in Looming's knowledge, and older main turns keep their class/level lines. The next saves are instructed not to record class or level, so those entries should drop out, but this is not guaranteed.
+
+## D-011: Saves go live directly, in the background; undo instead of cancel
+
+**Date:** 2026-11-09 · **Status:** accepted · **Supersedes:** the draft/confirm/cancel flow (D-005's confirm rule) · **Code:** `src/services/checkpointService.js` (`saveCheckpoint`, `undoLastSave`), `src/discord/commands/checkpointCommand.js`
+
+**Context.** Since the save reply became short, `confirm` was an extra step with nothing to review in the channel. A save also took 30–60 s (five parallel model calls; the slowest is the largest knowledge record). It blocked all play meanwhile, and failed outright if anyone wrote during it.
+
+**Decisions.**
+- **`/checkpoint save` creates the version directly.** It replies "Saving…" at once and "Saved as vN…" when done.
+- **Play continues during a save.** The save runs after the request lock is released, with its own one-per-guild lock. It covers messages up to the high-water mark taken when it started. Messages that arrive meanwhile are simply after the new boundary and go into the next save; they no longer abort it. The save is aborted only if a version is created during generation (rollback, undo or DM edit). Undo and rollback are refused while a save runs.
+- **`/checkpoint undo`** (user decision: keep both undo and rollback). It undoes the latest version if it is a save: the previous version's snapshot **and boundary** are restored as a new version on the **same timeline**, so no play is lost and the next save summarizes it again. `rollback` is unchanged: it goes back in the story on a new timeline, and later play is abandoned.
+- **Removed:** `draft`, `confirm`, `cancel`. The drafts table stays (unused), so no migration is needed. Any leftover draft is cleared on save.
+
+**Trade-off.** There is no review before a save goes live. A bad summary (e.g. a private fact in the shared part) is live until undone. Check with `/checkpoint show` in `#dm-testing` after saves that involved private play.

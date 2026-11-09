@@ -73,7 +73,10 @@ notes) are restored together.
 @Dungeon Master /checkpoint rollback <n>
 ```
 
-A pending draft you don't like: `@Dungeon Master /checkpoint cancel`.
+A save whose **summary** came out wrong (missed something, mixed up who
+knows what) but the play itself was fine: `@Dungeon Master /checkpoint undo`.
+It restores the previous summary and keeps every message, so the next save
+redoes it. Use `rollback` only to go back in the story (D-011).
 
 ### Private information leaked into #main-adventure
 
@@ -83,9 +86,14 @@ it. Prompt fixes don't remove it after the fact, so **the only undo is a
 rollback** to a version from before the leak:
 
 ```text
-@Dungeon Master /checkpoint cancel            # if a draft is pending
 @Dungeon Master /checkpoint rollback <n>      # last version before the leak
 ```
+
+If the leak is only in a save's **summary** (e.g. a private fact in the
+shared part) and not in anything the DM said in `#main-adventure`, use
+`/checkpoint undo` instead: no play is lost. Saves go live immediately
+(D-011), so check `/checkpoint show` in `#dm-testing` after a save when
+private play happened.
 
 Then fix the cause (see [DECISIONS.md](DECISIONS.md) D-004 revision for the
 2026-11-09 incident) and replay the scene. Leaks in a private channel only

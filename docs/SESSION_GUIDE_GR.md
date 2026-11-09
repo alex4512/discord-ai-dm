@@ -3,7 +3,7 @@
 ## Ρόλοι
 
 - **George**: παίζει τον **Looming Shade**, μόνο στο **#looming-private**, με τον δικό του λογαριασμό. Μόνο σε αυτόν απαντά εκεί ο DM.
-- **Admin / παίκτης του Kraavok**: συντονίζει. Κάνει save και confirm και κάνει τους ελέγχους. Βλέπει το κανάλι του George αλλά δεν γράφει εκεί. Ως Kraavok, κάνει τον έκπληκτο 😄
+- **Admin / παίκτης του Kraavok**: συντονίζει. Κάνει save και κάνει τους ελέγχους. Βλέπει το κανάλι του George αλλά δεν γράφει εκεί. Ως Kraavok, κάνει τον έκπληκτο 😄
 
 ---
 
@@ -61,7 +61,7 @@
 
    Παίζει όσο θέλει. Για τα ζάρια χρησιμοποιεί το Avrae και μετά λέει το αποτέλεσμα στον DM.
 
-7. Όταν κάνει παύση, λέει στον admin **«σταμάτησα»**. Μέχρι να τελειώσει το βήμα 10, **δεν γράφει στον DM**.
+7. Όταν κάνει παύση, λέει στον admin **«σταμάτησα»**. (Το save δεν μπλοκάρει πια το παιχνίδι, αλλά για τον έλεγχο είναι πιο καθαρό να περιμένει.)
 
 ### Φάση 2: Checkpoint (admin)
 
@@ -71,26 +71,19 @@
    @Dungeon Master /checkpoint save
    ```
 
-   ✅ Απαντά με ένα σύντομο «Checkpoint draft ready…». Το πλήρες draft το βλέπεις στο βήμα 9.
-   ⚠️ Αν δεις «New campaign messages arrived…», κάποιος έγραψε στο μεταξύ. Ξαναστείλε το save.
+   ✅ Απαντά αμέσως «Saving…» και μετά από λίγο «Saved as vX…». Το save ισχύει αμέσως, χωρίς confirm.
 
 9. **#dm-testing:**
 
    ```text
-   @Dungeon Master /checkpoint draft
+   @Dungeon Master /checkpoint show
    ```
 
    ✅ Στο κοινό κομμάτι (shared checkpoint) δεν φαίνεται **τίποτα** από όσα είπε ή έκανε ο George.
    ✅ Υπάρχει ενότητα **Looming Shade: private knowledge** με τα στοιχεία του.
    ✅ Στα DM notes, τα δικά του στοιχεία έχουν `known_by: ["Looming Shade"]`.
 
-10. **#main-adventure** (ο ίδιος που έκανε το save):
-
-    ```text
-    @Dungeon Master /checkpoint confirm
-    ```
-
-    ✅ «Checkpoint vX confirmed».
+10. Αν κάτι από τα παραπάνω είναι λάθος, στο **#main-adventure**: `@Dungeon Master /checkpoint undo`. Γυρίζει την περίληψη πίσω **χωρίς να χαθεί παιχνίδι**, και το επόμενο save την ξαναφτιάχνει.
 
 ### Φάση 3: Έλεγχοι μυστικότητας
 
@@ -133,11 +126,11 @@
 | Πρόβλημα | Τι κάνεις |
 | --- | --- |
 | **Διαρροή** στο βήμα 8, 11 ή 12 | Στο **#main-adventure**: `@Dungeon Master /checkpoint rollback <έκδοση από το βήμα 3>`. Μετά καταγράφεις τι έγινε (βλ. `docs/OPERATIONS.md`). |
-| **Λάθος draft** (ο DM κατάλαβε κάτι λάθος), **πριν** το confirm | `@Dungeon Master /checkpoint cancel`, ο George διορθώνει, και ξανά από το βήμα 8 |
+| **Λάθος save** (η περίληψη βγήκε λάθος, το παιχνίδι ήταν οκ) | `@Dungeon Master /checkpoint undo` στο #main-adventure, και ξανά από το βήμα 8 |
 | **«Dungeon Master error»** | Έλεγξε την κονσόλα του bot |
 
 ---
 
 ## Μετά
 
-Ο George συνεχίζει κανονικά. Κάθε φορά που θέλετε να **«κλειδώσει» η πρόοδος**, επαναλαμβάνετε τη **Φάση 2**: παύση, save, έλεγχος draft, confirm.
+Ο George συνεχίζει κανονικά. Κάθε φορά που θέλετε να **«κλειδώσει» η πρόοδος**, επαναλαμβάνετε τη **Φάση 2**: save και, αν θέλετε, έλεγχος με `/checkpoint show` στο #dm-testing.

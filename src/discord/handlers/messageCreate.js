@@ -19,7 +19,8 @@ const IMAGE_COMMAND = /^\/image(?:\s+([\s\S]+))?$/i;
 
 /**
  * Handles one mention while the guild lock is held. May return a follow-up
- * task (image generation) to run after the lock is released.
+ * `{ kind, task }` (an image or a checkpoint save) to run after the lock
+ * is released.
  */
 async function handleRequest(message, prompt) {
   const guildId = message.guild.id;
@@ -36,8 +37,9 @@ async function handleRequest(message, prompt) {
   const checkpointAction = parseCheckpointCommand(prompt);
 
   if (checkpointAction) {
-    await handleCheckpointCommand(message, checkpointAction, player);
-    return null;
+    // A save returns its long-running work to run outside the lock (D-011).
+    const task = await handleCheckpointCommand(message, checkpointAction, player);
+    return task ? { kind: 'save', task } : null;
   }
 
   if (await handleWorldCommand(message, prompt, player)) {
@@ -48,7 +50,7 @@ async function handleRequest(message, prompt) {
 
   if (imageMatch) {
     await reply(message, '*The scene takes shape...*');
-    return async () => {
+    return { kind: 'image', task: async () => {
       const image = await requestedImage({
         guildId,
         channelId: message.channel.id,
@@ -57,7 +59,7 @@ async function handleRequest(message, prompt) {
         request: imageMatch[1]?.trim() || ''
       });
       await sendImage(message.channel, image);
-    };
+    } };
   }
 
   const turn = await playTurn({
@@ -84,7 +86,7 @@ async function handleRequest(message, prompt) {
   if (!turn.scene || turn.testMode) return null;
 
   // First arrival somewhere: establishing image (D-008). Never fails the turn.
-  return async () => {
+  return { kind: 'image', task: async () => {
     const image = await arrivalImage({
       guildId,
       channelId: message.channel.id,
@@ -95,7 +97,7 @@ async function handleRequest(message, prompt) {
       replyText: turn.text
     });
     if (image) await sendImage(message.channel, image);
-  };
+  } };
 }
 
 async function runImageTask(message, task) {
@@ -161,5 +163,7 @@ export async function onMessageCreate(message) {
     busyGuilds.delete(guildId);
   }
 
-  if (followUp) await runImageTask(message, followUp);
+  if (followUp?.kind === 'image') await runImageTask(message, followUp.task);
+  // The save task handles its own errors and lock (checkpointCommand.js).
+  if (followUp?.kind === 'save') await followUp.task();
 }

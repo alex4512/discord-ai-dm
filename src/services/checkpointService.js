@@ -8,8 +8,7 @@ import * as checkpointRepo from '../db/repositories/checkpointRepository.js';
 import {
   getHighWaterSeq,
   getHistory,
-  getLatestMessageId,
-  hasMessagesAfter
+  getLatestMessageId
 } from '../db/repositories/messageRepository.js';
 import { getPlayers } from '../db/repositories/playerRepository.js';
 import {
@@ -23,16 +22,6 @@ import { appendChronicle, mergeUpdate } from './registry.js';
 import { toSnapshot } from '../db/partitions.js';
 import { toCharacterSummary } from '../ai/prompts.js';
 import { getCampaignLegacyCheckpoint } from './campaignService.js';
-
-function campaignChangedAfter(guildId, timelineId, sinceSeq, db) {
-  return hasMessagesAfter({
-    guildId,
-    timelineId,
-    channelIds: config.campaignChannelIds,
-    sinceSeq
-  }, db);
-}
-
 
 /** Private channels joined with the registered player who owns each. */
 function getPrivateScopes(players) {
@@ -50,11 +39,6 @@ export async function getActiveCheckpoint(guildId) {
   return { ...state, ...toSnapshot(state) };
 }
 
-export async function getPendingDraft(guildId) {
-  const draft = await checkpointRepo.getDraft(guildId);
-  return draft ? { ...draft, ...toSnapshot(draft) } : null;
-}
-
 export function listCheckpointVersions(guildId) {
   return checkpointRepo.listVersions(guildId, CHECKPOINT_VERSIONS_LIST_LIMIT);
 }
@@ -68,9 +52,12 @@ export function listCheckpointVersions(guildId) {
  *   character  <- main channel + own private channel + own previous knowledge
  *   dm_notes   <- everything
  *
- * The draft is discarded if the campaign moves on during generation.
+ * The new version covers messages up to the high-water mark taken at the
+ * start; play may continue meanwhile and goes into the next save (D-011).
+ * The save is discarded if a version is created during generation
+ * (a rollback, undo or DM edit).
  */
-export async function createCheckpointDraft({ guildId, authorId }) {
+export async function saveCheckpoint({ guildId, authorId }) {
   const state = await stateRepo.getState(guildId);
   const previous = toSnapshot(state);
   const isFirstVersion = state.version === 0;
@@ -208,80 +195,93 @@ export async function createCheckpointDraft({ guildId, authorId }) {
     chronicle: appendChronicle(previous.chronicle, world.events, state.version + 1)
   };
 
-  const latestState = await stateRepo.getState(guildId);
+  const { version } = await withGuildTransaction(guildId, async db => {
+    const latest = await stateRepo.getStateForUpdate(db, guildId);
 
-  if (
-    latestState.version !== state.version ||
-    latestState.timeline_id !== state.timeline_id
-  ) {
-    throw new UserFacingError('Campaign changed during draft generation. Retry.');
-  }
+    if (
+      !latest ||
+      latest.version !== state.version ||
+      latest.timeline_id !== state.timeline_id
+    ) {
+      throw new UserFacingError(
+        'The campaign changed during the save (rollback, undo or DM edit). ' +
+        'Nothing was saved; save again.'
+      );
+    }
 
-  if (await campaignChangedAfter(guildId, state.timeline_id, boundarySeq)) {
-    throw new UserFacingError(
-      'New campaign messages arrived during draft generation. Retry.'
-    );
-  }
+    const next = state.version + 1;
 
-  await checkpointRepo.upsertDraft({
-    guildId,
-    snapshot,
-    basedOnVersion: state.version,
-    createdBy: authorId,
-    timelineId: state.timeline_id,
-    boundaryMessageId,
-    boundaryAt,
-    boundarySeq
+    await stateRepo.advanceCheckpoint(db, {
+      guildId,
+      snapshot,
+      version: next,
+      boundaryAt,
+      boundarySeq
+    });
+
+    await checkpointRepo.insertVersion(db, {
+      guildId,
+      version: next,
+      snapshot,
+      createdBy: authorId,
+      reason: 'save',
+      timelineId: state.timeline_id,
+      boundaryMessageId,
+      boundaryAt,
+      boundarySeq
+    });
+
+    // Drafts are no longer used (D-011); clear any left from before.
+    await checkpointRepo.deleteDraft(guildId, db);
+
+    return { version: next };
   });
 
   return {
-    ...snapshot,
-    basedOnVersion: state.version,
+    version,
     updatedCharacters: characterEntries.map(([name]) => name)
   };
 }
 
-/** Promotes the guild's draft to the active snapshot. Returns the new version. */
-export function confirmCheckpointDraft({ guildId, userId }) {
+/**
+ * Undoes the latest save: restores the previous version's snapshot and
+ * history boundary as a new version on the SAME timeline. Unlike a rollback,
+ * no play is abandoned; the next save summarizes those messages again.
+ */
+export function undoLastSave({ guildId, userId }) {
   return withGuildTransaction(guildId, async db => {
-    const draft = await checkpointRepo.getDraftForUpdate(db, guildId);
-
-    if (!draft) {
-      throw new UserFacingError('No checkpoint draft exists.');
-    }
-
-    if (draft.created_by !== userId) {
-      throw new UserFacingError('Only the draft creator can confirm it.');
-    }
-
     const state = await stateRepo.getStateForUpdate(db, guildId);
 
-    if (
-      !state ||
-      state.version !== draft.based_on_version ||
-      state.timeline_id !== draft.timeline_id
-    ) {
+    if (!state || state.version === 0) {
+      throw new UserFacingError('No saved checkpoint exists.');
+    }
+
+    const latest = await checkpointRepo.getVersion(guildId, state.version, db);
+
+    if (latest?.reason !== 'save') {
       throw new UserFacingError(
-        'Campaign checkpoint or timeline changed. Create a new draft.'
+        `The latest change (v${state.version}) is not a save, so there is ` +
+        'nothing to undo. Use /checkpoint rollback <version> to go back in the story.'
       );
     }
 
-    if (await campaignChangedAfter(guildId, state.timeline_id, draft.boundary_seq, db)) {
+    const target = await checkpointRepo.getVersion(guildId, state.version - 1, db);
+
+    if (!target || target.timeline_id !== state.timeline_id) {
       throw new UserFacingError(
-        'New campaign messages arrived after the draft. ' +
-        'Use /checkpoint save again.'
+        'The save before this one is on another timeline; use /checkpoint rollback.'
       );
     }
 
     const version = state.version + 1;
-    const snapshot = toSnapshot(draft);
+    const snapshot = toSnapshot(target);
 
     await stateRepo.advanceCheckpoint(db, {
       guildId,
       snapshot,
       version,
-      boundaryAt: draft.boundary_at,
-      boundarySeq: draft.boundary_seq
+      boundaryAt: target.boundary_at,
+      boundarySeq: target.boundary_seq
     });
 
     await checkpointRepo.insertVersion(db, {
@@ -289,16 +289,14 @@ export function confirmCheckpointDraft({ guildId, userId }) {
       version,
       snapshot,
       createdBy: userId,
-      reason: 'save',
+      reason: `undo save v${state.version}`,
       timelineId: state.timeline_id,
-      boundaryMessageId: draft.boundary_message_id,
-      boundaryAt: draft.boundary_at,
-      boundarySeq: draft.boundary_seq
+      boundaryMessageId: target.boundary_message_id,
+      boundaryAt: target.boundary_at,
+      boundarySeq: target.boundary_seq
     });
 
-    await checkpointRepo.deleteDraft(guildId, db);
-
-    return { version };
+    return { undoneVersion: state.version, restoredVersion: target.version, version };
   });
 }
 
@@ -385,9 +383,4 @@ export function amendActiveSnapshot({ guildId, userId, reason, mutate }) {
 
     return { version };
   });
-}
-
-/** Returns true if the user's draft was removed. */
-export function cancelCheckpointDraft({ guildId, userId }) {
-  return checkpointRepo.deleteDraftOwnedBy(guildId, userId);
 }

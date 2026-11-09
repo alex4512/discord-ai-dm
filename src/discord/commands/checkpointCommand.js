@@ -1,14 +1,13 @@
 import { config } from '../../config.js';
+import { UserFacingError } from '../../errors/UserFacingError.js';
 import { reply } from '../reply.js';
 import { audienceForChannel, renderSnapshot } from '../checkpointView.js';
 import {
-  cancelCheckpointDraft,
-  confirmCheckpointDraft,
-  createCheckpointDraft,
   getActiveCheckpoint,
-  getPendingDraft,
   listCheckpointVersions,
-  rollbackCheckpoint
+  rollbackCheckpoint,
+  saveCheckpoint,
+  undoLastSave
 } from '../../services/checkpointService.js';
 
 const COMMAND_PATTERN = /^\/checkpoint(?:\s+(.+))?\s*$/i;
@@ -16,13 +15,15 @@ const COMMAND_PATTERN = /^\/checkpoint(?:\s+(.+))?\s*$/i;
 const HELP_TEXT = [
   'Commands:',
   '/checkpoint show',
-  '/checkpoint draft',
   '/checkpoint versions',
-  '/checkpoint save',
-  '/checkpoint confirm',
-  '/checkpoint cancel',
-  '/checkpoint rollback <version>'
+  '/checkpoint save: summarize play since the last save (you can keep playing)',
+  '/checkpoint undo: undo the last save, keeping all play',
+  '/checkpoint rollback <version>: go back in the story (later play is abandoned)'
 ].join('\n');
+
+// Saves run in the background, outside the per-guild request lock (D-011),
+// one at a time per guild. Undo and rollback wait until a save finishes.
+const savingGuilds = new Set();
 
 /** Returns the action text if `prompt` is a /checkpoint command, else null. */
 export function parseCheckpointCommand(prompt) {
@@ -34,6 +35,41 @@ export function parseCheckpointCommand(prompt) {
 function formatBoundary(row) {
   if (row.boundary_seq == null) return 'none';
   return `message #${row.boundary_seq} (${new Date(row.boundary_at).toISOString()})`;
+}
+
+function assertNotSaving(guildId) {
+  if (savingGuilds.has(guildId)) {
+    throw new UserFacingError('A save is in progress. Try again when it finishes.');
+  }
+}
+
+/** Background save task; replies in the channel when done. */
+function saveTask(message, { guildId, userId }) {
+  savingGuilds.add(guildId);
+
+  return async () => {
+    try {
+      const { version, updatedCharacters } =
+        await saveCheckpoint({ guildId, authorId: userId });
+      const updated = updatedCharacters.length ? updatedCharacters.join(', ') : 'none';
+
+      await reply(
+        message,
+        `Saved as v${version}. Knowledge updated for: ${updated}. ` +
+        '(`/checkpoint undo` if the summary came out wrong.)'
+      );
+    } catch (error) {
+      if (error instanceof UserFacingError) {
+        await reply(message, error.message).catch(() => {});
+      } else {
+        console.error('Checkpoint save error:', error);
+        await reply(message, 'Save failed; nothing was saved. Check the server logs.')
+          .catch(() => {});
+      }
+    } finally {
+      savingGuilds.delete(guildId);
+    }
+  };
 }
 
 const actions = {
@@ -50,19 +86,6 @@ const actions = {
     );
   },
 
-  async draft({ guildId, audience }) {
-    const draft = await getPendingDraft(guildId);
-
-    if (!draft) return 'No checkpoint draft pending.';
-
-    return (
-      `Pending draft based on v${draft.based_on_version} ` +
-      `(boundary ${formatBoundary(draft)})\n` +
-      '**NOT YET SAVED**\n\n' +
-      renderSnapshot(draft, audience)
-    );
-  },
-
   async versions({ guildId }) {
     const rows = await listCheckpointVersions(guildId);
 
@@ -76,39 +99,20 @@ const actions = {
       .join('\n');
   },
 
-  async save({ guildId, userId }) {
-    const draft = await createCheckpointDraft({ guildId, authorId: userId });
-
-    const updated = draft.updatedCharacters.length
-      ? draft.updatedCharacters.join(', ')
-      : 'none';
-
-    // Short on purpose: this posts in the game channel. The full draft is
-    // one `/checkpoint draft` away (best read in #dm-testing).
-    return (
-      `Checkpoint draft ready (based on v${draft.basedOnVersion}), ` +
-      `**not yet saved**. Knowledge updated for: ${updated}.\n` +
-      '`/checkpoint confirm` to save, `/checkpoint cancel` to discard, ' +
-      '`/checkpoint draft` to review it.'
-    );
-  },
-
-  async confirm({ guildId, userId }) {
-    const { version } = await confirmCheckpointDraft({ guildId, userId });
+  async undo({ guildId, userId }) {
+    assertNotSaving(guildId);
+    const result = await undoLastSave({ guildId, userId });
 
     return (
-      `Checkpoint v${version} confirmed. ` +
-      'History boundary updated for all campaign channels.'
+      `Undid save v${result.undoneVersion}: v${result.restoredVersion} ` +
+      `restored as v${result.version}. All play is kept and will be ` +
+      'summarized again at the next save.'
     );
-  },
-
-  async cancel({ guildId, userId }) {
-    const cancelled = await cancelCheckpointDraft({ guildId, userId });
-    return cancelled ? 'Checkpoint draft cancelled.' : 'No draft owned by you.';
   }
 };
 
 async function rollback({ guildId, userId }, targetVersion) {
+  assertNotSaving(guildId);
   const result = await rollbackCheckpoint({ guildId, userId, targetVersion });
 
   return (
@@ -120,8 +124,8 @@ async function rollback({ guildId, userId }, targetVersion) {
   );
 }
 
-const READ_ONLY = new Set(['show', 'draft', 'versions', 'help']);
-const PRIVATE_ACTIONS = new Set(['show', 'draft', 'help']);
+const READ_ONLY = new Set(['show', 'versions', 'help']);
+const PRIVATE_ACTIONS = new Set(['show', 'help']);
 
 function channelRestriction(channelId, action) {
   const { main, test } = config.channels;
@@ -138,22 +142,36 @@ function channelRestriction(channelId, action) {
   if (isPrivate) {
     return PRIVATE_ACTIONS.has(action)
       ? null
-      : 'Private channels support only /checkpoint show and /checkpoint draft.';
+      : 'Private channels support only /checkpoint show.';
   }
 
   return 'Checkpoint commands are not available in this channel.';
 }
 
+/**
+ * Handles a /checkpoint command. Returns a follow-up task to run after the
+ * request lock is released (a save), or null.
+ */
 export async function handleCheckpointCommand(message, action, player) {
   const channelId = message.channel.id;
   const restriction = channelRestriction(channelId, action);
-  if (restriction) return reply(message, restriction);
+  if (restriction) {
+    await reply(message, restriction);
+    return null;
+  }
 
   const ctx = {
     guildId: message.guild.id,
     userId: message.author.id,
     audience: audienceForChannel(channelId, player)
   };
+
+  if (action === 'save') {
+    assertNotSaving(ctx.guildId);
+    await reply(message, 'Saving... you can keep playing; I\'ll post here when it\'s done.');
+    return saveTask(message, ctx);
+  }
+
   const rollbackMatch = action.match(/^rollback\s+(\d+)$/);
 
   let response;
@@ -165,5 +183,6 @@ export async function handleCheckpointCommand(message, action, player) {
     response = HELP_TEXT;
   }
 
-  return reply(message, response);
+  await reply(message, response);
+  return null;
 }
