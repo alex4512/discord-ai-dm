@@ -58,10 +58,14 @@ appears there once they've learned something about it.
 | `/chronicle` | all | The last 20 events this channel may know |
 | `/xp` | all | Your XP and level (`#dm-testing`: everyone) |
 | `/xp <count> <creature> CR <cr>; ... \| <names>` | all | Award XP by hand, same syntax as the DM's tag |
+| `/xp medium challenge: <what> \| <names>` | all | Award a non-combat challenge or milestone (easy, medium, hard, deadly) |
 | `/xp set <character> <total>` | testing | Set a character's XP total |
 
-**Experience (D-012, D-014).** When a fight ends in the characters' favour,
-the DM adds a hidden XP tag. The bot computes the award from the 2014 CR
+**Experience (D-012, D-014, D-015).** XP is earned for overcoming
+challenges: fights won, and non-combat obstacles (a trap disarmed, a
+crucial negotiation, a puzzle) or major story milestones, rated easy to
+deadly and priced per character level. A single ability check on its own
+earns nothing. When it happens, the DM adds a hidden XP tag. The bot computes the award from the 2014 CR
 table, splits it evenly, records it and posts e.g. "+75 each". Totals and
 levels are kept by the bot, versioned with the story: a rollback removes
 later XP, an undo keeps it. Totals show only in your private channel

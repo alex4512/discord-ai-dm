@@ -4,6 +4,7 @@
  * evenly. Totals are kept by the bot (progressService.js, D-014).
  *
  * Tag: [[XP: 4 goblin CR 1/4; 1 bugbear CR 1 | Kraavok, Looming Shade]]
+ * Challenge or milestone, priced by level: [[XP: medium challenge: disarmed the trap | Kraavok]]
  * A plain amount is a direct award: [[XP: 150 solved the seal | Kraavok]]
  */
 
@@ -22,7 +23,23 @@ const DECIMAL_CR = { '0.125': '1/8', '0.25': '1/4', '0.5': '1/2' };
 
 export const XP_TAG = /\[\[\s*XP\s*:\s*([^\]\n]+?)\s*\]\]/gi;
 
+// Dungeon Master's Guide (2014), XP thresholds per character level
+// [easy, medium, hard, deadly]. A non-combat challenge or story milestone is
+// worth an encounter of the same difficulty (D-015).
+const THRESHOLDS = [
+  null,
+  [25, 50, 75, 100], [50, 100, 150, 200], [75, 150, 225, 400],
+  [125, 250, 375, 500], [250, 500, 750, 1100], [300, 600, 900, 1400],
+  [350, 750, 1100, 1700], [450, 900, 1400, 2100], [550, 1100, 1600, 2400],
+  [600, 1200, 1900, 2800], [800, 1600, 2400, 3600], [1000, 2000, 3000, 4500],
+  [1100, 2200, 3400, 5100], [1250, 2500, 3800, 5700], [1400, 2800, 4300, 6400],
+  [1600, 3200, 4800, 7200], [2000, 3900, 5900, 8800], [2100, 4200, 6300, 9500],
+  [2400, 4900, 7300, 10900], [2800, 5700, 8500, 12700]
+];
+const DIFFICULTY = { easy: 0, medium: 1, hard: 2, deadly: 3 };
+
 const MONSTER = /^(\d+)\s*[x×]?\s+(.+?)\s*\(?\s*CR\s*([\d./]+)\s*\)?$/i;
+const CHALLENGE = /^(easy|medium|hard|deadly)(?:\s+(?:challenge|milestone))?\s*[:\-–]?\s*(.*)$/i;
 const DIRECT = /^(\d+)\s*(?:xp\b)?\s*(.*)$/i;
 
 function xpForCr(cr) {
@@ -30,11 +47,21 @@ function xpForCr(cr) {
   return XP_BY_CR[key] ?? null;
 }
 
+/** Sum of the participants' thresholds for a difficulty (each by their level). */
+function challengeXp(difficulty, participants, levels) {
+  const column = DIFFICULTY[difficulty.toLowerCase()];
+  return participants.reduce((sum, name) => {
+    const level = Math.min(Math.max(Number(levels?.[name]) || 1, 1), 20);
+    return sum + THRESHOLDS[level][column];
+  }, 0);
+}
+
 /**
- * Parses one tag body against the registered character names.
+ * Parses one tag body against the registered character names. `levels`
+ * ({ name: level }) prices challenges; unknown levels count as 1.
  * Returns null if nothing valid remains (unknown CR, no participants).
  */
-export function parseXpTag(body, characterNames) {
+export function parseXpTag(body, characterNames, levels = {}) {
   const [left, right = ''] = String(body).split('|');
 
   const byName = new Map(characterNames.map(n => [n.trim().toLowerCase(), n]));
@@ -57,6 +84,15 @@ export function parseXpTag(body, characterNames) {
       });
       continue;
     }
+    const challenge = raw.match(CHALLENGE);
+    if (challenge) {
+      const [, difficulty, what] = challenge;
+      sources.push({
+        label: `${what.trim() || 'challenge'} (${difficulty.toLowerCase()})`,
+        xp: challengeXp(difficulty, participants, levels)
+      });
+      continue;
+    }
     const direct = raw.match(DIRECT);
     if (direct) {
       sources.push({ label: direct[2].trim() || 'award', xp: Number(direct[1]) });
@@ -75,9 +111,9 @@ export function parseXpTag(body, characterNames) {
 }
 
 /** Removes XP tags from a reply; returns the clean text and parsed awards. */
-export function extractXpTags(text, characterNames) {
+export function extractXpTags(text, characterNames, levels = {}) {
   const awards = [...String(text).matchAll(XP_TAG)]
-    .map(match => parseXpTag(match[1], characterNames))
+    .map(match => parseXpTag(match[1], characterNames, levels))
     .filter(Boolean);
 
   const clean = String(text).replace(XP_TAG, '').replace(/\n{3,}/g, '\n\n').trim();

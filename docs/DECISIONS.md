@@ -495,3 +495,19 @@ reused.
 - **Dice wording.** Players roll however they like (Avrae, physical dice, any app) and report in any words. No format is required.
 
 **Checked (2026-11-09).** A rolled-back test on the live DB covered: the defaults, awards, level-up detection, save folding, an undo after a save with a later award (no XP lost), a rollback (later XP gone), a DM tag inside a turn (recorded; Looming shown as level 2 in his prompt), the visibility of totals per channel, a level-up posted in the private channel, and `/xp`, `/xp set` and its channel restriction. 17/17 passed; 0 rows left behind.
+
+## D-015: XP for challenges and milestones, not for single checks
+
+**Date:** 2026-11-09 · **Status:** accepted (user: "any choice is fine, document it") · **Code:** `src/services/xp.js` (`THRESHOLDS`, `CHALLENGE`), DM rule 18 in `src/ai/prompts.js`
+
+**Context.** The user asked whether XP comes only from fights, or also at key points and when an ability check passes.
+
+**Rules followed (5e 2014).** XP is for *overcoming challenges*. The Dungeon Master's Guide values a non-combat challenge like a combat encounter of the same difficulty, and allows milestone awards for major story goals. There is no XP per ability check: it would inflate XP and reward rolling for everything.
+
+**Decision.**
+- **Overcome obstacles earn XP:** a trap disarmed, a crucial negotiation won, a puzzle solved, a dangerous crossing made. A single successful check counts when it is what overcomes a real obstacle. Routine checks and checks that find nothing never earn XP.
+- **Milestones:** major story points (e.g. reaching the Bell) are tagged as hard or deadly.
+- **The DM rates difficulty, the code prices it.** Tag: `[[XP: medium challenge: disarmed the trap | Kraavok, Looming Shade]]` (easy, medium, hard or deadly; `challenge` or `milestone`). The XP is the sum of each participant's DMG threshold at their current level (from D-014), split evenly like monster XP. Example: medium with Kraavok L4 (250) and Looming L1 (50) = 300, so +150 each.
+- **`/xp medium challenge: <what> | <names>`** awards one by hand. Plain amounts (`/xp 100 <what> | <names>`) remain available.
+
+**Checked (2026-11-09).** Parser: difficulty pricing by level, milestones, challenges mixed with monsters; monster and plain awards unchanged. Real model on synthetic scenes: a disarmed trap was tagged in 3/4 runs (1/3 before the clarification that a check which overcomes an obstacle counts), and an ordinary Perception check that finds nothing in 0/4. Earlier XP tests (D-012, D-014) still pass.

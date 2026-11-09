@@ -78,6 +78,7 @@
 - [ ] Track current/max HP, temporary HP, hit dice, and exhaustion
 - [ ] Track Rage, spell slots, class features, and limited-use resources
 - [ ] Track inventory, equipment, consumables, and currency
+- [x] XP for non-combat challenges and story milestones, rated easy–deadly and priced per level from the DMG thresholds; never for a single check on its own (D-015)
 - [x] XP and level kept by the bot: the DM tags resolved encounters, code computes XP from the CR table, records it in a ledger folded into each save; rollback/undo-safe; level-ups announced privately; `/xp`, `/xp set` (D-012, D-014)
 - [ ] Track conditions, rests, and level progression
 - [x] Monster and NPC dice rolled by the bot: the DM calls a `roll_dice` tool, code rolls with a crypto RNG, every roll is shown above the narration (D-013). Players roll their own however they like (Avrae optional).

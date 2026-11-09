@@ -132,7 +132,8 @@ export async function playTurn({
       input: [...history, { role: 'user', content: playerInput }]
     });
     // XP tags first, so a reply that is only tags still gets the scene fallback.
-    const xp = extractXpTags(raw.text, characterNames);
+    const levels = Object.fromEntries(players.map(p => [p.character_name, p.character_level]));
+    const xp = extractXpTags(raw.text, characterNames, levels);
     const parsed = extractSceneTag(xp.text);
     // Monster/NPC dice are shown above the narration and kept in history (D-013).
     const rollLines = (raw.rolls || []).map(formatRoll);

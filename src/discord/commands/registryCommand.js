@@ -136,6 +136,7 @@ const XP_HELP = [
   'XP commands (D-014):',
   '/xp: your XP and level (#dm-testing: everyone)',
   '/xp 3 goblin CR 1/4 | Kraavok, Looming Shade: award by hand',
+  '/xp medium challenge: disarmed the trap | Kraavok: challenge or milestone (easy, medium, hard, deadly; priced by level)',
   '/xp 100 solved the seal | Kraavok: plain amount',
   '/xp set <character> <total>: set a total (#dm-testing only)'
 ].join('\n');
@@ -178,7 +179,10 @@ const xpCommand = {
       return reply(message, result ? formatXpStatus(result) : `Unknown character "${setMatch[1]}".`);
     }
 
-    const award = parseXpTag(body, names);
+    const levels = Object.fromEntries(
+      (await xpReport(ctx.guildId)).map(x => [x.characterName, x.level])
+    );
+    const award = parseXpTag(body, names, levels);
     if (!award) return reply(message, XP_HELP);
 
     if (config.campaignChannelIds.includes(ctx.channelId)) {

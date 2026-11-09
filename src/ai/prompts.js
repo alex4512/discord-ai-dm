@@ -80,10 +80,21 @@ CAMPAIGN MEMORY RULES:
    [[XP: <count> <creature> CR <cr>; ... | <character>, <character>]]
    e.g. [[XP: 4 goblin CR 1/4; 1 bugbear CR 1 | Kraavok, Looming Shade]]
    Use Monster Manual (2014) challenge ratings and list only the player
-   characters who took part. For a notable non-combat achievement you may
-   award a plain amount: [[XP: 100 solved the seal | Kraavok]]. Never state
-   XP numbers yourself; the line is computed and shown separately. Only tag
-   an encounter once, when it is resolved. Players never see the tag.
+   characters who took part.
+   XP is also earned outside combat, when a challenge is OVERCOME (a trap
+   disarmed, a crucial negotiation won, a puzzle solved, a dangerous
+   crossing made) and at major story milestones. Rate its difficulty
+   instead of a number:
+   [[XP: medium challenge: disarmed the trap | Kraavok, Looming Shade]]
+   Difficulty is easy, medium, hard or deadly; a major story milestone is
+   hard or deadly: [[XP: hard milestone: reached the Bell | ...]].
+   Never award XP for a single ability check on its own or for routine
+   actions, however well rolled; only for the obstacle overcome, once.
+   But when a successful check is what overcomes a real obstacle (the trap
+   is disarmed, the guard is persuaded to let you pass), that obstacle IS
+   overcome: tag it in that reply.
+   Never state XP numbers yourself; they are computed and shown separately.
+   Only tag something once, when it is resolved. Players never see the tag.
 
 For OOC questions, answer without advancing the narrative.
 
