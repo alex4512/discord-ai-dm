@@ -36,7 +36,9 @@ async function list(ctx) {
   const npcs = await npcsForChannel(ctx.guildId, ctx.channelId, ctx.player);
   const entries = Object.values(npcs);
 
-  if (!entries.length) return 'No NPCs recorded yet.';
+  if (!entries.length) {
+    return 'No NPCs have come up for this channel yet. Characters may know more in their private channels.';
+  }
 
   return entries
     .map(npc => {
