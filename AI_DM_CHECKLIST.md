@@ -47,7 +47,7 @@
 - ⚠️ Robust transactional consistency across multiple bot instances — `messages.seq` high-water marks and advisory locks; the busy guard is still in-process only
 - [ ] Explicit checkpoint editing workflow (beyond regenerate / cancel / confirm)
 
-**Known limitation:** NPC registry `secrets` still reach every channel's prompt labelled DM-only (registry is empty today). Everything else is filtered per audience in code (D-004).
+**Known limitation:** DM-authored NPC `author_notes` reach every DM reply prompt labelled DM-only (spoiler risk, not a cross-player leak). Everything learned in play is filtered per audience in code (D-004, D-007).
 
 ## 3. Multiplayer Synchronization & Character Knowledge — NEXT PRIORITY
 
@@ -84,12 +84,12 @@
 
 ## 5. Persistent World & NPCs
 
-- [x] PostgreSQL NPC registry schema
-- [x] DM can read NPC registry records
-- [ ] Populate known Dunmere NPCs (Voss, Brann, Derren, Mara, Orren, Varek, Mother Vael, etc.)
-- [ ] Track NPC locations, relationships, motivations, and statuses
-- [ ] Protect NPC secrets and DM-only knowledge from player-facing output
-- [ ] Persist NPC state changes after significant events
+- [x] NPC registry as a versioned checkpoint partition (D-007, migration 0004)
+- [x] DM reads NPCs filtered per audience; `/npc list`, `/npc show`, `/npc note`
+- [x] Populate known Dunmere NPCs: import script with gitignored local seed (`data/*.local.json`)
+- [x] Track NPC locations, statuses and facts with `known_by`; motivations as DM author notes
+- [x] Protect NPC secrets and DM-only knowledge from player-facing output — author notes never in player output; still in DM prompts (D-007 trade-off)
+- [x] Persist NPC state changes after significant events — NPC update call at each save
 - [ ] Maintain location and world-event records
 - [ ] Track unresolved mysteries, objectives, and consequences
 - [ ] Validate continuity between main and private scenes
@@ -135,7 +135,7 @@
 
 ### Milestone 4 — Persistent World
 
-- [ ] Populate and maintain NPC registry
+- [x] Populate and maintain NPC registry (D-007)
 - [ ] World-state updates, locations, and consequences
 - [ ] Cross-scene consistency tests
 

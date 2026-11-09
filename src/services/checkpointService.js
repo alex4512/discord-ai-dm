@@ -12,12 +12,14 @@ import {
   hasMessagesAfter
 } from '../db/repositories/messageRepository.js';
 import { getPlayers } from '../db/repositories/playerRepository.js';
-import { getNpcs, toPublicNpc } from '../db/repositories/npcRepository.js';
 import {
   generateCharacterKnowledge,
   generateDmNotes,
+  generateNpcUpdate,
   generateSharedCheckpoint
 } from '../ai/dungeonMaster.js';
+import { npcsFor } from './audience.js';
+import { mergeNpcUpdate } from './npcRegistry.js';
 import { toCharacterSummary } from '../ai/prompts.js';
 import { getCampaignLegacyCheckpoint } from './campaignService.js';
 
@@ -30,12 +32,13 @@ function campaignChangedAfter(guildId, timelineId, sinceSeq, db) {
   }, db);
 }
 
-/** The three audience partitions of a state/draft/version row. */
+/** The audience partitions of a state/draft/version row. */
 function toSnapshot(row) {
   return {
     checkpoint: row.checkpoint,
     character_knowledge: row.character_knowledge || {},
-    dm_notes: row.dm_notes || null
+    dm_notes: row.dm_notes || null,
+    npcs: row.npcs || {}
   };
 }
 
@@ -94,10 +97,9 @@ export async function createCheckpointDraft({ guildId, authorId }) {
     untilSeq: boundarySeq
   });
 
-  const [players, npcs, legacy, mainHistory, boundaryMessageId] =
+  const [players, legacy, mainHistory, boundaryMessageId] =
     await Promise.all([
       getPlayers(guildId),
-      getNpcs(guildId),
       getCampaignLegacyCheckpoint(guildId),
       historyOf(config.channels.main),
       getLatestMessageId({
@@ -134,6 +136,10 @@ export async function createCheckpointDraft({ guildId, authorId }) {
   );
 
   const playerSummaries = players.map(toCharacterSummary);
+  const characterNames = players.map(p => p.character_name);
+
+  // NPC views for summarization inputs never include author_notes (D-007).
+  const npcsKnownTo = readers => npcsFor(previous.npcs, readers, characterNames);
 
   const sharedTask = generateSharedCheckpoint({
     current_version: state.version,
@@ -141,7 +147,7 @@ export async function createCheckpointDraft({ guildId, authorId }) {
     legacy_kraavok: isFirstVersion ? legacy : null,
     active_main_history: mainHistory,
     players: playerSummaries,
-    npc_public_information: npcs.map(toPublicNpc)
+    npcs_known_to_everyone: npcsKnownTo(characterNames)
   });
 
   const characterTasks = activeScopes.map(async scope => [
@@ -152,7 +158,8 @@ export async function createCheckpointDraft({ guildId, authorId }) {
       legacy_personal_history: scope.legacySeed,
       shared_checkpoint: isFirstVersion ? null : previous.checkpoint,
       main_adventure_history: mainHistory,
-      own_private_history: scope.history
+      own_private_history: scope.history,
+      npcs_known_to_character: npcsKnownTo([scope.name])
     })
   ]);
 
@@ -166,13 +173,24 @@ export async function createCheckpointDraft({ guildId, authorId }) {
       privateScopes.map(scope => [scope.name, scope.history])
     ),
     players: playerSummaries,
-    npc_registry: npcs
+    npc_registry: previous.npcs
   });
 
-  const [checkpoint, characterEntries, dmNotes] = await Promise.all([
+  const npcTask = generateNpcUpdate({
+    previous_npcs: previous.npcs,
+    previous_dm_notes: previous.dm_notes,
+    main_adventure_history: mainHistory,
+    private_histories: Object.fromEntries(
+      privateScopes.map(scope => [scope.name, scope.history])
+    ),
+    players: playerSummaries
+  });
+
+  const [checkpoint, characterEntries, dmNotes, npcList] = await Promise.all([
     sharedTask,
     Promise.all(characterTasks),
-    dmTask
+    dmTask,
+    npcTask
   ]);
 
   const snapshot = {
@@ -181,7 +199,8 @@ export async function createCheckpointDraft({ guildId, authorId }) {
       ...previous.character_knowledge,
       ...Object.fromEntries(characterEntries)
     },
-    dm_notes: dmNotes
+    dm_notes: dmNotes,
+    npcs: mergeNpcUpdate(previous.npcs, npcList)
   };
 
   const latestState = await stateRepo.getState(guildId);
@@ -327,6 +346,39 @@ export function rollbackCheckpoint({ guildId, userId, targetVersion }) {
     await checkpointRepo.deleteDraft(guildId, db);
 
     return { restoredVersion: targetVersion, version, timelineId };
+  });
+}
+
+/**
+ * Applies a DM-authored change to the active snapshot as a new version on
+ * the same timeline, keeping the history boundary (e.g. an NPC note).
+ * `mutate(snapshot)` receives a deep copy and returns the new snapshot.
+ */
+export function amendActiveSnapshot({ guildId, userId, reason, mutate }) {
+  return withGuildTransaction(guildId, async db => {
+    const state = await stateRepo.getStateForUpdate(db, guildId);
+
+    if (!state || state.version === 0) {
+      throw new UserFacingError('Save a first checkpoint before editing campaign data.');
+    }
+
+    const snapshot = mutate(structuredClone(toSnapshot(state)));
+    const version = state.version + 1;
+
+    await stateRepo.replaceSnapshot(db, { guildId, snapshot, version });
+
+    await checkpointRepo.insertVersion(db, {
+      guildId,
+      version,
+      snapshot,
+      createdBy: userId,
+      reason,
+      timelineId: state.timeline_id,
+      boundaryAt: state.boundary_at,
+      boundarySeq: state.boundary_seq
+    });
+
+    return { version };
   });
 }
 

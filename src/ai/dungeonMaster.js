@@ -2,12 +2,14 @@ import { openai } from './openaiClient.js';
 import {
   characterKnowledgeSchema,
   checkpointSchema,
-  dmNotesSchema
+  dmNotesSchema,
+  npcUpdateSchema
 } from './checkpointSchema.js';
 import {
   CHARACTER_KNOWLEDGE_INSTRUCTIONS,
   CHECKPOINT_INSTRUCTIONS,
-  DM_NOTES_INSTRUCTIONS
+  DM_NOTES_INSTRUCTIONS,
+  NPC_UPDATE_INSTRUCTIONS
 } from './prompts.js';
 import { config } from '../config.js';
 
@@ -75,4 +77,15 @@ export function generateDmNotes(context) {
     instructions: DM_NOTES_INSTRUCTIONS,
     context
   });
+}
+
+/** Full NPC registry update. Context may contain everything. */
+export async function generateNpcUpdate(context) {
+  const result = await generateStructured({
+    name: 'npc_update',
+    schema: npcUpdateSchema,
+    instructions: NPC_UPDATE_INSTRUCTIONS,
+    context
+  });
+  return result.npcs;
 }

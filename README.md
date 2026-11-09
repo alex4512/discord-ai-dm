@@ -44,7 +44,22 @@ knowledge** (that character's private channel), and **DM notes**
 | `/checkpoint save` | main | Draft a new checkpoint from all channels since the last boundary |
 | `/checkpoint confirm` | main | Promote your draft to the active checkpoint |
 | `/checkpoint cancel` | main | Discard your draft |
-| `/checkpoint rollback <n>` | main | Restore version `n` (all three parts) on a new timeline |
+| `/checkpoint rollback <n>` | main | Restore version `n` (all parts, including NPCs) on a new timeline |
+
+### NPC commands
+
+NPCs are part of the checkpoint (D-007). What each channel sees is filtered
+the same way as character knowledge.
+
+| Command | Where | Effect |
+| --- | --- | --- |
+| `/npc list` | all | NPCs and what this channel's readers know of their role/status |
+| `/npc show <name>` | all | One NPC as this channel may see it (`#dm-testing`: everything) |
+| `/npc note <name>: <text>` | testing | Add DM-authored truth (creates the NPC if new) as a new version |
+
+To import a batch of NPCs once, run `node scripts/import-npcs.js data/<file>.local.json`.
+Seed files hold canon and DM secrets, and the repo is public, so keep them in
+`data/*.local.json` (gitignored).
 
 ## Project structure
 
@@ -72,6 +87,8 @@ src/
 │   └── dungeonMaster.js      # OpenAI calls (DM reply, isolated checkpoint parts)
 ├── services/                 # Business logic; no Discord types
 │   ├── audience.js           # Channel -> audience; per-audience filtering
+│   ├── npcService.js         # /npc note, NPC import (new versions)
+│   ├── npcRegistry.js        # Pure NPC merge helpers
 │   ├── campaignService.js
 │   ├── checkpointService.js
 │   └── dungeonMasterService.js
@@ -81,9 +98,11 @@ src/
     ├── reply.js              # Chunked replies without pings
     ├── checkpointView.js     # Channel -> audience, audience-safe rendering
     ├── commands/checkpointCommand.js
+    ├── commands/npcCommand.js
     └── handlers/messageCreate.js
 migrations/                   # Numbered SQL schema migrations
 scripts/migrate.js            # `npm run migrate` entry point
+scripts/import-npcs.js        # One-time NPC import from a local seed file
 docs/DECISIONS.md             # Design decision log
 docs/OPERATIONS.md            # Upgrade, verify, recover
 ```
@@ -119,8 +138,8 @@ Looming Shade.
 
 - No Avrae result ingestion yet.
 - Each DM reply only gets what its channel's audience may see (D-004).
-  Character knowledge and DM notes are filtered in code. Only NPC registry
-  secrets still rely on the model not revealing them.
+  Character knowledge, DM notes and NPC facts are filtered in code. Only
+  DM-authored NPC author notes rely on the model not revealing them (D-007).
 - No usage or budget accounting.
 - Treat model output as narrative, not as proof that data isolation has
   been audited.

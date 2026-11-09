@@ -58,6 +58,14 @@ export function renderSnapshot(snapshot, audience) {
       'DM notes',
       snapshot.dm_notes ? json(snapshot.dm_notes, dmNotesSchema) : NOTHING_YET
     ));
+    const npcNames = Object.keys(snapshot.npcs || {});
+    sections.push(section(
+      'NPCs',
+      npcNames.length
+        ? `${npcNames.join(', ')}
+(details: /npc show <name>)`
+        : NOTHING_YET
+    ));
   } else {
     sections.push(
       '_Private character knowledge and DM notes are not shown in this channel._'

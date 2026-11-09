@@ -1,7 +1,7 @@
 import { pool } from '../pool.js';
 
-// A "snapshot" is the three audience partitions saved together:
-//   { checkpoint, character_knowledge, dm_notes }
+// A "snapshot" is the audience partitions saved together:
+//   { checkpoint, character_knowledge, dm_notes, npcs }
 
 // ---------- Legacy (pre-versioning) checkpoint ----------
 
@@ -21,7 +21,7 @@ export async function getLegacyCheckpoint({ guildId, characterName, ownerId }) {
 // ---------- Drafts (one per guild) ----------
 
 const DRAFT_COLUMNS = `
-  checkpoint, character_knowledge, dm_notes, based_on_version, created_by,
+  checkpoint, character_knowledge, dm_notes, npcs, based_on_version, created_by,
   timeline_id, boundary_message_id, boundary_at, boundary_seq, created_at
 `;
 
@@ -37,15 +37,16 @@ export async function upsertDraft({
 }, db = pool) {
   await db.query(`
     INSERT INTO public.campaign_checkpoint_drafts (
-      guild_id, checkpoint, character_knowledge, dm_notes,
+      guild_id, checkpoint, character_knowledge, dm_notes, npcs,
       based_on_version, created_by, timeline_id,
       boundary_message_id, boundary_at, boundary_seq, created_at
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
     ON CONFLICT (guild_id) DO UPDATE SET
       checkpoint = EXCLUDED.checkpoint,
       character_knowledge = EXCLUDED.character_knowledge,
       dm_notes = EXCLUDED.dm_notes,
+      npcs = EXCLUDED.npcs,
       based_on_version = EXCLUDED.based_on_version,
       created_by = EXCLUDED.created_by,
       timeline_id = EXCLUDED.timeline_id,
@@ -58,6 +59,7 @@ export async function upsertDraft({
     snapshot.checkpoint,
     snapshot.character_knowledge,
     snapshot.dm_notes,
+    snapshot.npcs,
     basedOnVersion,
     createdBy,
     timelineId,
@@ -121,17 +123,18 @@ export async function insertVersion(db, {
 }) {
   await db.query(`
     INSERT INTO public.campaign_checkpoint_versions (
-      guild_id, version, checkpoint, character_knowledge, dm_notes,
+      guild_id, version, checkpoint, character_knowledge, dm_notes, npcs,
       created_by, reason, timeline_id,
       boundary_message_id, boundary_at, boundary_seq
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
   `, [
     guildId,
     version,
     snapshot.checkpoint,
     snapshot.character_knowledge,
     snapshot.dm_notes,
+    snapshot.npcs,
     createdBy,
     reason,
     timelineId,
@@ -143,7 +146,7 @@ export async function insertVersion(db, {
 
 export async function getVersion(guildId, version, db = pool) {
   const result = await db.query(`
-    SELECT checkpoint, character_knowledge, dm_notes
+    SELECT checkpoint, character_knowledge, dm_notes, npcs
     FROM public.campaign_checkpoint_versions
     WHERE guild_id = $1
       AND version = $2

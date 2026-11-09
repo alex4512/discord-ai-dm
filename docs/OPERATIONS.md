@@ -49,6 +49,7 @@ commit message.
 | `0001_baseline` | Records the existing schema; creates `schema_migrations` | yes (no-op) | not needed |
 | `0002_message_seq` | `messages.seq` ordering; `boundary_seq` on state, versions, drafts | yes | restore backup, or drop the added columns |
 | `0003_knowledge_partitions` | `character_knowledge`, `dm_notes` on state, versions, drafts | yes | restore backup, or drop the added columns |
+| `0004_npc_partition` | `npcs` on state, versions, drafts | yes | restore backup, or drop the added columns |
 
 Commits that add no migration (for example the D-004 prompt change) only
 need a restart. Roll them back with `git checkout <previous-commit>` and a

@@ -37,6 +37,10 @@ CAMPAIGN MEMORY RULES:
 10. observable_world_state is how the world physically is now,
    even if it changed off-screen. Describe it naturally when a
    character perceives that place. Never explain who caused it.
+11. NPCS: role/appearance/personality are how anyone meeting them
+   perceives them. status/location/facts are what the characters in
+   this channel know. author_notes are DM-only truth for playing the
+   NPC consistently; never state them to players.
 
 For OOC questions, answer without advancing the narrative.
 
@@ -151,6 +155,42 @@ Do not advance the adventure.
 Return only JSON matching the required schema.
 `;
 
+export const NPC_UPDATE_INSTRUCTIONS = `
+Update the non-player character (NPC) registry of a shared
+D&D 5e 2014 RAW campaign.
+
+Only active timeline events are valid.
+
+You receive the previous NPC registry (including DM-authored
+author_notes, which are authoritative truth), every channel's history
+since the last checkpoint and the DM notes.
+
+Return the COMPLETE registry: every previous NPC (unchanged if nothing
+happened to them) plus any NPC newly introduced in play.
+Use exactly the same name for an NPC as before.
+
+Field rules:
+- role, appearance, personality: only what anyone meeting the NPC would
+  perceive or commonly hear. Never mention a player character, a secret,
+  or anything learned privately. Empty string if unknown.
+- status (alive, dead, missing, hostile, captured, ...) and location:
+  the current truth, with known_by = exactly the player characters who
+  know it through play. Pure DM truth no character knows: known_by [].
+- facts: things about the NPC learned in play, each with known_by =
+  exactly the characters who learned it. A fact from a private channel
+  is known only by that character. Keep every still-true previous fact.
+
+Respect author_notes: never contradict them; you may not copy them into
+facts unless a character actually learned them in play.
+
+Use the registered character names exactly. When unsure who knows
+something, leave the character out.
+
+Do not invent NPCs, facts or outcomes beyond what history supports.
+Do not advance the adventure.
+Return only JSON matching the required schema.
+`;
+
 const TEST_MODE_BLOCK = `TEST MODE:
 Do not advance the story.
 Do not persist messages.
@@ -231,7 +271,7 @@ export function buildDmInstructions({
     );
   }
 
-  blocks.push(`NPC REGISTRY (DM ONLY):\n${JSON.stringify(npcs)}`);
+  blocks.push(`NPCS:\n${JSON.stringify(npcs)}`);
 
   if (testMode) blocks.push(TEST_MODE_BLOCK);
 

@@ -6,3 +6,6 @@ node_modules/
 
 # Local handover notes (not part of the project)
 CLAUDE_HANDOVER.md
+
+# Local campaign data (NPC seeds etc.). The repo is public: never commit canon/secrets
+data/*.local.json

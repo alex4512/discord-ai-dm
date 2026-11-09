@@ -142,3 +142,51 @@ export const dmNotesSchema = {
     'notes'
   ]
 };
+
+const taggedValue = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    value: { type: 'string' },
+    known_by: stringList
+  },
+  required: ['value', 'known_by']
+};
+
+/**
+ * NPC update (D-007). The model rewrites the NPC list at each save.
+ * author_notes are deliberately NOT part of this schema: they are written
+ * only by the DM (/npc note, import) and merged back in code.
+ */
+export const npcUpdateSchema = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    npcs: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          name: { type: 'string' },
+          role: { type: 'string' },
+          appearance: { type: 'string' },
+          personality: { type: 'string' },
+          status: taggedValue,
+          location: taggedValue,
+          facts: taggedList('fact')
+        },
+        required: [
+          'name',
+          'role',
+          'appearance',
+          'personality',
+          'status',
+          'location',
+          'facts'
+        ]
+      }
+    }
+  },
+  required: ['npcs']
+};

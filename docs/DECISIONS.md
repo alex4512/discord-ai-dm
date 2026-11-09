@@ -234,3 +234,48 @@ roll back if it leaks (see OPERATIONS).
 **Consequence.** Consequences now cross channels the way they would in the
 world, and the shared checkpoint picks them up once they're perceived in
 `#main-adventure`.
+
+---
+
+## D-007: NPCs as a versioned checkpoint partition, filtered per audience
+
+**Date:** 2026-11-09 · **Status:** accepted · **Migration:** `0004_npc_partition.sql` · **Code:** `src/services/npcService.js`, `npcRegistry.js`, `audience.js`
+
+**Context.** The `campaign_npcs` table was empty, unversioned (a rollback
+wouldn't restore NPC state) and went into every prompt whole, including
+`secrets`. Characters' knowledge *about* NPCs had no structure.
+
+**Decision.** NPCs live in a fourth partition, `npcs`, on the checkpoint rows,
+so they are saved and rolled back with everything else (D-001). Each record:
+
+| Field | Written by | Players' prompts and views |
+|---|---|---|
+| `role`, `appearance`, `personality` | model at save / seed | everyone, but dropped if it names a player character (D-006 guard) |
+| `status`, `location` `{ value, known_by }` | model / seed | only if every reader is in `known_by` |
+| `facts [{ fact, known_by }]` | model / seed | only if every reader is in `known_by` |
+| `author_notes [string]` | **only the DM** (`/npc note`, import) | DM reply prompts only (labelled DM-only), **never** summarization inputs or `/npc` output to players |
+
+- `/checkpoint save` runs one more isolated call that returns the complete NPC
+  list. Code merges it: `author_notes` are always carried over (the model's
+  schema can't write them), and NPCs the model omits are kept, never
+  silently deleted.
+- `/npc note <name>: <text>` (`#dm-testing` only) and `scripts/import-npcs.js`
+  append a new checkpoint version on the same timeline (boundary kept),
+  so DM edits are rolled back like play. A pending draft becomes stale and
+  must be saved again.
+- `campaign_npcs` is left in place but no longer read.
+
+**Trade-off (accepted).** `author_notes` reach every DM reply prompt, so the DM
+can play NPCs consistently (motivations, secrets). Keeping them unsaid relies
+on the model. This is a *spoiler* risk only, not a cross-player leak: author
+notes come from the DM, never from a player's channel, and that provenance is
+set in code. Everything learned in play is filtered by `known_by`.
+
+**Canon (per the user, 2026-11-09).** The NPCs from Kraavok's legacy
+history exist in the shared world. What Kraavok learned about them is his
+knowledge only (`known_by: Kraavok`). Unsettled questions are DM author
+notes, and the DM settles them in play, recorded at the next save.
+
+**The repo is public.** NPC seed files hold canon and DM secrets, so they live
+in `data/*.local.json` (gitignored). Never put NPC secrets in docs, commit
+messages or tracked files.

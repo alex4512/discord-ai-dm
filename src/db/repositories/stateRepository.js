@@ -2,7 +2,7 @@ import { pool } from '../pool.js';
 
 export async function getState(guildId, db = pool) {
   const result = await db.query(`
-    SELECT checkpoint, character_knowledge, dm_notes,
+    SELECT checkpoint, character_knowledge, dm_notes, npcs,
            version, timeline_id, boundary_at, boundary_seq
     FROM public.campaign_state
     WHERE guild_id = $1
@@ -13,7 +13,8 @@ export async function getState(guildId, db = pool) {
 
 export async function getStateForUpdate(db, guildId) {
   const result = await db.query(`
-    SELECT version, timeline_id
+    SELECT checkpoint, character_knowledge, dm_notes, npcs,
+           version, timeline_id, boundary_at, boundary_seq
     FROM public.campaign_state
     WHERE guild_id = $1
     FOR UPDATE
@@ -56,9 +57,10 @@ export async function advanceCheckpoint(db, {
     SET checkpoint = $2,
         character_knowledge = $3,
         dm_notes = $4,
-        version = $5,
-        boundary_at = $6,
-        boundary_seq = $7,
+        npcs = $5,
+        version = $6,
+        boundary_at = $7,
+        boundary_seq = $8,
         updated_at = NOW()
     WHERE guild_id = $1
   `, [
@@ -66,6 +68,7 @@ export async function advanceCheckpoint(db, {
     snapshot.checkpoint,
     snapshot.character_knowledge,
     snapshot.dm_notes,
+    snapshot.npcs,
     version,
     boundaryAt,
     boundarySeq
@@ -84,8 +87,9 @@ export async function resetToTimeline(db, {
     SET checkpoint = $2,
         character_knowledge = $3,
         dm_notes = $4,
-        version = $5,
-        timeline_id = $6,
+        npcs = $5,
+        version = $6,
+        timeline_id = $7,
         boundary_at = NULL,
         boundary_seq = NULL,
         updated_at = NOW()
@@ -95,7 +99,32 @@ export async function resetToTimeline(db, {
     snapshot.checkpoint,
     snapshot.character_knowledge,
     snapshot.dm_notes,
+    snapshot.npcs,
     version,
     timelineId
+  ]);
+}
+
+/**
+ * Replaces the snapshot and bumps the version on the current timeline,
+ * keeping the history boundary (e.g. a DM-authored NPC note).
+ */
+export async function replaceSnapshot(db, { guildId, snapshot, version }) {
+  await db.query(`
+    UPDATE public.campaign_state
+    SET checkpoint = $2,
+        character_knowledge = $3,
+        dm_notes = $4,
+        npcs = $5,
+        version = $6,
+        updated_at = NOW()
+    WHERE guild_id = $1
+  `, [
+    guildId,
+    snapshot.checkpoint,
+    snapshot.character_knowledge,
+    snapshot.dm_notes,
+    snapshot.npcs,
+    version
   ]);
 }

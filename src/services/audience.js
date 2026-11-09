@@ -101,3 +101,45 @@ export function characterKnowledgeFor(characterKnowledge, audience) {
   }
   return {};
 }
+
+/**
+ * NPC registry for a set of readers (D-007).
+ *
+ * - role / appearance / personality: shared perception; dropped if they
+ *   mention a player character (same fail-closed guard as D-006).
+ * - status / location / facts: only if EVERY reader is in known_by.
+ * - author_notes (DM-authored truth): only when `includeAuthorNotes`,
+ *   i.e. in DM reply prompts, never in summarization inputs or player views.
+ *
+ * `readers === null` (the DM) gets the raw registry.
+ */
+export function npcsFor(npcs, readers, characterNames = [], { includeAuthorNotes = false } = {}) {
+  if (!npcs) return {};
+  if (!readers) return npcs;
+
+  const wanted = readers.map(normalize);
+  const parts = nameParts([...characterNames, ...readers]);
+  const perceivable = text =>
+    typeof text === 'string' && !parts.some(part => normalize(text).includes(part))
+      ? text
+      : '';
+  const ifKnown = tagged => (knownByAll(tagged, wanted) ? tagged.value : null);
+
+  return Object.fromEntries(
+    Object.entries(npcs).map(([key, npc]) => {
+      const view = {
+        name: npc.name || key,
+        role: perceivable(npc.role),
+        appearance: perceivable(npc.appearance),
+        personality: perceivable(npc.personality),
+        status: ifKnown(npc.status),
+        location: ifKnown(npc.location),
+        facts: (npc.facts || [])
+          .filter(fact => knownByAll(fact, wanted))
+          .map(fact => fact.fact)
+      };
+      if (includeAuthorNotes) view.author_notes = npc.author_notes || [];
+      return [key, view];
+    })
+  );
+}

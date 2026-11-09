@@ -1,7 +1,6 @@
 import { getState } from '../db/repositories/stateRepository.js';
 import { deleteMessage, getHistory, storeMessage } from '../db/repositories/messageRepository.js';
 import { getPlayers } from '../db/repositories/playerRepository.js';
-import { getNpcs } from '../db/repositories/npcRepository.js';
 import { generateDmReply } from '../ai/dungeonMaster.js';
 import { buildDmInstructions, buildPlayerInput } from '../ai/prompts.js';
 import { getCampaignLegacyCheckpoint } from './campaignService.js';
@@ -9,6 +8,7 @@ import {
   audienceForChannel,
   characterKnowledgeFor,
   dmNotesFor,
+  npcsFor,
   readersOf
 } from './audience.js';
 
@@ -34,7 +34,7 @@ export async function playTurn({
   const testMode = audience.kind === 'dm';
   const state = await getState(guildId);
 
-  const [history, legacyCheckpoint, players, npcs] = await Promise.all([
+  const [history, legacyCheckpoint, players] = await Promise.all([
     testMode
       ? []
       : getHistory({
@@ -44,9 +44,11 @@ export async function playTurn({
           afterSeq: state.boundary_seq
         }),
     state.version === 0 ? getCampaignLegacyCheckpoint(guildId) : null,
-    getPlayers(guildId),
-    getNpcs(guildId)
+    getPlayers(guildId)
   ]);
+
+  const readers = readersOf(audience, players);
+  const characterNames = players.map(p => p.character_name);
 
   const instructions = buildDmInstructions({
     channelId,
@@ -56,12 +58,8 @@ export async function playTurn({
     state,
     legacyCheckpoint,
     characterKnowledge: characterKnowledgeFor(state.character_knowledge, audience),
-    dmNotes: dmNotesFor(
-      state.dm_notes,
-      readersOf(audience, players),
-      players.map(p => p.character_name)
-    ),
-    npcs,
+    dmNotes: dmNotesFor(state.dm_notes, readers, characterNames),
+    npcs: npcsFor(state.npcs, readers, characterNames, { includeAuthorNotes: true }),
     testMode
   });
 
