@@ -72,6 +72,22 @@ notes) are restored together.
 
 A pending draft you don't like: `@Dungeon Master /checkpoint cancel`.
 
+### Private information leaked into #main-adventure
+
+Anything the DM says in `#main-adventure` is stored in the main history. The
+next `/checkpoint save` treats it as public, because every player could read
+it. Prompt fixes don't remove it after the fact, so **the only undo is a
+rollback** to a version from before the leak:
+
+```text
+@Dungeon Master /checkpoint cancel            # if a draft is pending
+@Dungeon Master /checkpoint rollback <n>      # last version before the leak
+```
+
+Then fix the cause (see [DECISIONS.md](DECISIONS.md) D-004 revision for the
+2026-11-09 incident) and replay the scene. Leaks in a private channel only
+reach that channel's owner. Roll back there too if the owner shouldn't know.
+
 ### Bad deploy (bot crashes or misbehaves after an upgrade)
 
 1. Stop the bot.

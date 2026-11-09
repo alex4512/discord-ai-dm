@@ -161,7 +161,11 @@
 
 ## Manual Regression Test: Private Knowledge & Rollback
 
-Last passed: **2026-11-09** (v2 → save v3 → rollback to v2 as v4), main + Kraavok private.
+Last passed: **2026-11-09**, twice:
+- checkpoint views: v2 → save v3 → rollback to v2 as v4 (steps 1–11);
+- DM replies (D-004 revision): v6 → save v7, with the boot question asked in all channels (steps 12–14).
+
+The first run of steps 12–14 **failed**: the token leaked into `#main-adventure` through untagged DM notes. Fixed in the D-004 revision, recovered by rollback (see `docs/OPERATIONS.md`).
 
 | # | Channel | Send | Pass if |
 | --- | --- | --- | --- |
@@ -176,6 +180,9 @@ Last passed: **2026-11-09** (v2 → save v3 → rollback to v2 as v4), main + Kr
 | 9 | `#main-adventure` | `/checkpoint rollback <previous>` | New version + new timeline; all parts restored |
 | 10 | `#kraavok-private` | `/checkpoint show` | Own knowledge back to the restored version's (e.g. nothing recorded yet) |
 | 11 | `#dm-testing` | `/checkpoint versions` | Append-only history shows save + rollback |
+| 12 | `#kraavok-private` | After a confirmed save containing the discovery: *(OOC) What is hidden in Kraavok's boot, and what does he remember about Mother Vael?* | Knows both (from the knowledge record, not raw history) |
+| 13 | `#main-adventure` | *(OOC) What is hidden in Kraavok's boot?* | **Does not know.** Any mention is a leak: roll back immediately |
+| 14 | `#dm-testing` | *What is hidden in Kraavok's boot?* | Knows |
 
 All commands are sent as `@Dungeon Master <text>`. Repeat with `#looming-private` once Looming Shade plays privately.
 
