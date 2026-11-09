@@ -33,7 +33,7 @@ from `.env` in that shell first. Don't paste them anywhere else.
 
 **Smoke test after every upgrade:**
 
-1. Console shows `Database initialized successfully` and `Dungeon Master online as …`.
+1. Console shows `Database initialized successfully (2 players, 2 private channels)` and `Dungeon Master online as …`.
 2. In `#dm-testing`: `@Dungeon Master /checkpoint show` returns the active version.
 3. In `#dm-testing`: `@Dungeon Master are you there?` returns a reply. This
    channel doesn't persist messages.
@@ -57,6 +57,7 @@ commit message.
 | `0005_locations_chronicle` | `locations`, `chronicle` on state, versions, drafts | yes | restore backup, or drop the added columns |
 | `0006_scene_images` | new tables `image_generations`, `scene_images`, `scene_arrivals` | yes | drop the three tables |
 | `0007_xp_progress` | `progress` JSONB on state/versions/drafts; new table `xp_awards` (seq from the messages sequence) | yes | drop `xp_awards` and the three `progress` columns |
+| `0008_player_channels` | `campaign_players.private_channel_id` + unique index (D-020). Filled once for Kraavok and Looming from the old `.env` values (2026-11-09) | yes (older code still reads `.env`) | drop the column and index |
 
 Commits that add no migration (for example the D-004 prompt change) only
 need a restart. Roll them back with `git checkout <previous-commit>` and a
@@ -112,6 +113,23 @@ reach that channel's owner. Roll back there too if the owner shouldn't know.
    because migrations are additive (see the table). You only need to
    restore the database if the data itself is damaged.
 4. `npm start` and smoke test.
+
+Code from before D-020 reads the players' channels from `.env`
+(`KRAAVOK_*`, `LOOMING_*`, `ALLOWED_CHANNEL_IDS`). Newer code ignores
+those lines, so **keep them in `.env`** as long as you might go back.
+
+### Restoring a backup from before 0008
+
+`npm run migrate` adds the column empty. The bot then starts but ignores
+the private channels (fail closed: never treated as shared). Fill them in
+once, then restart:
+
+```sql
+UPDATE public.campaign_players SET private_channel_id = '<channel id>'
+ WHERE guild_id = '<guild id>' AND discord_user_id = '<player id>';
+```
+
+The IDs are the old `KRAAVOK_*` / `LOOMING_*` values in `.env`.
 
 ### Restore the database from a backup (last resort)
 

@@ -23,6 +23,7 @@ import { toSnapshot } from '../db/partitions.js';
 import { SIZE_BUDGETS, toCharacterSummary } from '../ai/prompts.js';
 import { getCampaignLegacyCheckpoint } from './campaignService.js';
 import { foldProgress, withXpLevels } from './progressService.js';
+import { getPrivateChannels } from './roster.js';
 
 /** Previous size vs budget for one record (D-017). */
 function sizeBudget(record, previousValue) {
@@ -34,7 +35,7 @@ function sizeBudget(record, previousValue) {
 
 /** Private channels joined with the registered player who owns each. */
 function getPrivateScopes(players) {
-  return config.privateChannels
+  return getPrivateChannels()
     .map(({ channelId, ownerId }) => ({
       channelId,
       player: players.find(p => p.discord_user_id === ownerId)
@@ -152,7 +153,7 @@ export async function saveCheckpoint({ guildId, authorId }) {
   const sharedTask = generateSharedCheckpoint({
     current_version: state.version,
     active_checkpoint: isFirstVersion ? null : previous.checkpoint,
-    legacy_kraavok: isFirstVersion ? legacy : null,
+    legacy_checkpoint: isFirstVersion ? legacy : null,
     active_main_history: mainHistory,
     players: playerNames,
     world_known_to_everyone: worldKnownTo(characterNames),
@@ -177,7 +178,7 @@ export async function saveCheckpoint({ guildId, authorId }) {
     previous_dm_notes: previous.dm_notes,
     shared_checkpoint: isFirstVersion ? null : previous.checkpoint,
     character_knowledge: previous.character_knowledge,
-    legacy_kraavok: legacy,
+    legacy_checkpoint: legacy,
     main_adventure_history: mainHistory,
     private_histories: Object.fromEntries(
       privateScopes.map(scope => [scope.name, scope.history])

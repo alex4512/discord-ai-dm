@@ -1,3 +1,5 @@
+import { LEGACY_CHECKPOINT_CHARACTER } from '../constants.js';
+
 export const DM_RULES = `
 You are the Dungeon Master for a shared
 Dungeons & Dragons 5e 2014 RAW campaign.
@@ -5,7 +7,7 @@ Dungeons & Dragons 5e 2014 RAW campaign.
 The setting is Dunmere and the Northern Marches.
 
 PLAYER CHARACTERS:
-Kraavok and Looming Shade.
+Those listed under REGISTERED PLAYER CHARACTERS below.
 
 Each player controls only their own character.
 Never choose a player's actions, thoughts or dialogue.
@@ -160,11 +162,11 @@ or DM-only information.
 Do not invent facts, player decisions, inventory,
 hit points, dice results or story outcomes.
 
-For version 0, the legacy Kraavok checkpoint is
-historical starting context only.
-Do not assume Looming Shade participated in those events.
+For version 0, the legacy checkpoint is historical starting context
+of its one character only.
+Do not assume any other character participated in those events.
 
-Include both registered player characters.
+Include every registered player character.
 If their locations or conditions are uncertain,
 state that explicitly.
 
@@ -394,7 +396,7 @@ export function buildDmInstructions({
   ];
 
   if (!hasSavedCheckpoint) {
-    blocks.push(`LEGACY KRAAVOK REFERENCE:\n${JSON.stringify(legacyCheckpoint)}`);
+    blocks.push(`LEGACY REFERENCE (pre-versioning checkpoint of ${LEGACY_CHECKPOINT_CHARACTER}):\n${JSON.stringify(legacyCheckpoint)}`);
   }
 
   for (const [name, knowledge] of knowledgeEntries) {

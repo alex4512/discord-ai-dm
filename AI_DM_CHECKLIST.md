@@ -137,19 +137,13 @@
 
 ## 7. Player Onboarding — NEW
 
-Adding a player today is manual work for the admin:
+Goal: a new player joins without code or `.env` changes and without SQL. Agreed plan in D-020; step 1 done, step 2 waits for an actual new player.
 
-- `.env`: a channel ID and a Discord user ID per player (`KRAAVOK_*`, `LOOMING_*`), plus `ALLOWED_CHANNEL_IDS`. `src/config.js` names both players.
-- The `campaign_players` row is inserted by hand in SQL. Startup requires exactly Kraavok and Looming Shade (`REQUIRED_CHARACTERS` in `src/constants.js`).
-- The DM rules name the two characters (`src/ai/prompts.js`). The legacy checkpoint is Kraavok-only.
-- The private Discord channel and its permissions are created by hand.
-- The character's backstory and their entry into the shared scene were set up by hand (scene amendments v12–v14).
+Adding a player today (after step 1): a SQL row in `campaign_players` with `private_channel_id`, the Discord channel and its permissions by hand, a restart, and the character's backstory and story entry by hand (as for Looming, scene amendments v12–v14).
 
-Goal: a new player joins without code or `.env` changes and without SQL. Proposed shape (behaviour to agree before building):
-
-- [ ] Players and private channels stored in the database, not `.env`. Prompts, access checks and audiences read the roster from there.
-- [ ] Remove the hard-coded character names (`REQUIRED_CHARACTERS`, DM rules, legacy-checkpoint naming).
-- [ ] Admin command in `#dm-testing`, e.g. `/player add @user "Name" Class Level`. It registers the character and creates the private channel with the right permissions (needs the bot's *Manage Channels* permission).
+- [x] Step 1: players and private channels stored in the database, not `.env`; access checks, audiences, saves and XP read the roster from there (D-020, migration 0008)
+- [x] Step 1: hard-coded character names removed from logic (`REQUIRED_CHARACTERS`, DM rules, legacy-checkpoint naming). Names left only as examples in prompts and help text
+- [ ] Step 2 (planned, D-020): `/player add @user "Name" Class Level [#channel]` in `#dm-testing`. Creates the private channel by default (needs *Manage Channels* and *Manage Roles*), or uses an existing one; sets starting XP; no restart
 - [ ] Guided introduction in the new private channel: backstory, appearance and goals, seeding the first knowledge record.
 - [ ] Bring the character into the story: the DM proposes how they arrive in the shared scene, and the admin confirms it as a scene amendment.
 - [ ] Optional character-sheet import at registration (ties into Milestone 3).
@@ -198,7 +192,7 @@ Goal: a new player joins without code or `.env` changes and without SQL. Propose
 
 ### Milestone 6 — Player Onboarding
 
-- [ ] Database-driven roster and private channels; no hard-coded characters
+- [x] Database-driven roster and private channels; no hard-coded characters (D-020 step 1)
 - [ ] `/player add` with channel creation, guided introduction and story entry
 - [ ] Player guides (English, Greek)
 

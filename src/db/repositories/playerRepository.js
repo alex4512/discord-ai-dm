@@ -21,3 +21,15 @@ export async function getPlayers(guildId) {
 
   return result.rows;
 }
+
+/** Every player with their private channel (D-020); loaded into roster.js. */
+export async function getRoster(guildId) {
+  const result = await pool.query(`
+    SELECT character_name, discord_user_id, private_channel_id
+    FROM public.campaign_players
+    WHERE guild_id = $1
+    ORDER BY character_name
+  `, [guildId]);
+
+  return result.rows;
+}

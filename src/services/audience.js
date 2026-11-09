@@ -1,5 +1,6 @@
 import { config } from '../config.js';
 import { REGISTRY_KINDS } from './registry.js';
+import { isPrivateChannel } from './roster.js';
 
 /**
  * Who can read a channel (docs/DECISIONS.md, D-002):
@@ -15,7 +16,7 @@ export function audienceForChannel(channelId, player) {
     return { kind: 'dm' };
   }
 
-  if (config.privateChannels.some(c => c.channelId === channelId)) {
+  if (isPrivateChannel(channelId)) {
     return { kind: 'character', name: player.character_name };
   }
 

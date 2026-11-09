@@ -8,10 +8,6 @@ const REQUIRED_ENV = [
   'PGUSER',
   'PGPASSWORD',
   'DISCORD_GUILD_ID',
-  'KRAAVOK_CHANNEL_ID',
-  'KRAAVOK_DISCORD_ID',
-  'LOOMING_CHANNEL_ID',
-  'LOOMING_DISCORD_ID',
   'MAIN_ADVENTURE_CHANNEL_ID',
   'DM_TEST_CHANNEL_ID'
 ];
@@ -48,48 +44,26 @@ function parsePositiveInt(env, name, fallback) {
 function loadConfig(env = process.env) {
   assertRequiredEnv(env);
 
+  // The two fixed channels. Players' private channels live in the
+  // database (D-020, src/services/roster.js); the old per-player variables
+  // and ALLOWED_CHANNEL_IDS are no longer read.
   const channels = {
     main: env.MAIN_ADVENTURE_CHANNEL_ID,
-    test: env.DM_TEST_CHANNEL_ID,
-    kraavok: env.KRAAVOK_CHANNEL_ID,
-    looming: env.LOOMING_CHANNEL_ID
+    test: env.DM_TEST_CHANNEL_ID
   };
 
-  const allowedChannelIds = new Set(parseList(env.ALLOWED_CHANNEL_IDS));
-
-  for (const id of Object.values(channels)) {
-    if (!allowedChannelIds.has(id)) {
-      throw new Error(`Channel ${id} missing from ALLOWED_CHANNEL_IDS`);
-    }
+  if (channels.main === channels.test) {
+    throw new Error('MAIN_ADVENTURE_CHANNEL_ID and DM_TEST_CHANNEL_ID must differ');
   }
 
   return Object.freeze({
     discord: Object.freeze({
       token: env.DISCORD_BOT_TOKEN,
       guildId: env.DISCORD_GUILD_ID,
-      dmRoleId: env.DM_ROLE_ID || DEFAULT_DM_ROLE_ID,
-      allowedChannelIds
+      dmRoleId: env.DM_ROLE_ID || DEFAULT_DM_ROLE_ID
     }),
 
     channels: Object.freeze(channels),
-
-    // Channels whose messages feed the shared campaign timeline.
-    campaignChannelIds: Object.freeze([
-      channels.main,
-      channels.kraavok,
-      channels.looming
-    ]),
-
-    // Private channels may only be used by their owning player.
-    privateChannels: Object.freeze([
-      { channelId: channels.kraavok, ownerId: env.KRAAVOK_DISCORD_ID },
-      { channelId: channels.looming, ownerId: env.LOOMING_DISCORD_ID }
-    ]),
-
-    users: Object.freeze({
-      kraavok: env.KRAAVOK_DISCORD_ID,
-      looming: env.LOOMING_DISCORD_ID
-    }),
 
     openai: Object.freeze({
       apiKey: env.OPENAI_API_KEY,

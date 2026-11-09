@@ -1,8 +1,10 @@
 import { config } from '../config.js';
+import { isAllowedChannel, privateChannelOf } from '../services/roster.js';
 
 /**
  * Whether the bot may respond to this message at all: right guild,
- * an allowed channel, and private channels only for their owner.
+ * #main-adventure, #dm-testing or a registered private channel (D-020),
+ * and private channels only for their owner.
  */
 export function isAllowedMessage(message) {
   if (!message.guild || message.guild.id !== config.discord.guildId) {
@@ -11,13 +13,11 @@ export function isAllowedMessage(message) {
 
   const channelId = message.channel.id;
 
-  if (!config.discord.allowedChannelIds.has(channelId)) {
+  if (!isAllowedChannel(channelId)) {
     return false;
   }
 
-  const privateChannel = config.privateChannels.find(
-    c => c.channelId === channelId
-  );
+  const privateChannel = privateChannelOf(channelId);
 
   return !privateChannel || privateChannel.ownerId === message.author.id;
 }

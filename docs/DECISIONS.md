@@ -593,3 +593,24 @@ reused.
 2. Move someone, then run `/map` again. The layout should stay and only the moved creatures should change.
 3. Move to a different place, then run `/map`. It should be a new map, not the old layout.
 4. Check that a map from a private channel never shows up in the other player's channel.
+
+## D-020: Players and their private channels live in the database
+
+**Date:** 2026-11-09 · **Status:** step 1 accepted and done; step 2 agreed, **not built** (no new player yet) · **Code:** `migrations/0008_player_channels.sql`, `src/services/roster.js`, `getRoster()` in `src/db/repositories/playerRepository.js`
+
+**Context.** Adding a player meant editing `.env` (a channel and a user ID per player, plus `ALLOWED_CHANNEL_IDS`), code that named Kraavok and Looming Shade (startup check, config, DM rules), a SQL row and a Discord channel. No third player is joining yet, but the user wants the roster stored so that one can be added later without code changes.
+
+**Decision, step 1 (done).**
+- **Stored with the player.** `campaign_players.private_channel_id` (NULL = no private channel; the player still plays in `#main-adventure`). Unique per guild. Kraavok's and Looming's were copied once from `.env`, after a backup (`dnd_campaign_pre-0008_20261109-203739.dump`).
+- **Loaded at startup** into `roster.js` and kept in memory, because access checks and audiences run on every message. Anything that changes the roster must call `loadRoster()` again.
+- **Fixed channels stay in `.env`:** `MAIN_ADVENTURE_CHANNEL_ID`, `DM_TEST_CHANNEL_ID`. `KRAAVOK_*`, `LOOMING_*` and `ALLOWED_CHANNEL_IDS` are no longer read (kept in `.env` only for going back to older code).
+- **Allowed channels = main + testing + registered private channels.** Fail closed: a channel missing from the database is ignored, never treated as a shared channel, so a private channel can't leak by being forgotten.
+- **No names in logic.** Startup needs at least one player instead of exactly Kraavok and Looming. The DM rules point to the REGISTERED PLAYER CHARACTERS block. Saves say "every registered character". The v0 legacy checkpoint keeps its owner's name as historical data (`LEGACY_CHECKPOINT_CHARACTER`); it is only read at v0. Names remain only as examples in prompts and help text.
+
+**Checked (2026-11-09, live data, mocked model, rolled back).** Roster 2 players / 2 channels, equal to the old `.env` values. Access unchanged: each private channel is owner-only, main and testing are open, an unknown channel and another guild are refused. Audiences unchanged (main shared, testing DM, each private channel its character). DM prompts: each private channel gets only its own character knowledge, main none. A save still makes one knowledge call per private channel (Kraavok, Looming Shade). 25 checks passed, no rows left.
+
+**Plan, step 2 (agreed, build when a new player joins).** `/player add @user "Name" Class Level [#channel]`, run by the admin in `#dm-testing`:
+- **Creates the private channel by default** (user's choice), named after the character, under the existing private channels' category. Visible only to that player and the bot (server admins see all channels anyway, as Discord works). Needs the bot's *Manage Channels* and *Manage Roles* permissions.
+- **Or uses an existing channel** given as `#channel`, for when those permissions aren't granted.
+- Registers the player, sets the starting XP for the level (D-015), reloads the roster (no restart), posts a welcome in the new channel.
+- Later steps (separate designs): guided introduction (backstory → first knowledge record), story entry approved by the admin, `/player retire`, player guide in English and Greek.

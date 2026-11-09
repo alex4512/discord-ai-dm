@@ -8,8 +8,11 @@ import { onMessageCreate } from './discord/handlers/messageCreate.js';
 
 async function main() {
   await verifySchema();
-  await initializeCampaign(config.discord.guildId);
-  console.log('Database initialized successfully');
+  const roster = await initializeCampaign(config.discord.guildId);
+  console.log(
+    `Database initialized successfully ` +
+    `(${roster.players} players, ${roster.privateChannels} private channels)`
+  );
 
   const client = createDiscordClient();
 

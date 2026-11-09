@@ -143,6 +143,7 @@ src/
 │   └── images.js             # Picture prompt + image generation
 ├── services/                 # Business logic; no Discord types
 │   ├── audience.js           # Channel -> audience; per-audience filtering
+│   ├── roster.js             # Players' private channels from the DB (D-020)
 │   ├── worldService.js       # Author notes, world import (new versions)
 │   ├── imageService.js       # Arrival and /image pictures, daily cap
 │   ├── mapService.js         # /map: scene as data from the channel's own view
@@ -195,8 +196,10 @@ npm run migrate             # apply them, each in its own transaction
   tracked. On an existing database it changes nothing and is only
   recorded as applied.
 
-Startup also requires that `campaign_players` contains both Kraavok and
-Looming Shade.
+Startup also requires at least one player in `campaign_players`. Players'
+private channels are stored there too (`private_channel_id`, D-020); the
+bot only answers in `#main-adventure`, `#dm-testing` and registered private
+channels.
 
 ## Caveats
 
@@ -205,10 +208,9 @@ Looming Shade.
 - Restarting the bot cuts off any reply or save in progress, and mentions
   sent while it is down are not answered. Restart when nobody is mid-turn.
   Graceful restart is on the roadmap.
-- Adding a player is manual: `.env`, a SQL row, the Discord channel and
-  code that names the characters. See *Player Onboarding* in
-  [`AI_DM_CHECKLIST.md`](AI_DM_CHECKLIST.md), which also lists the next
-  steps.
+- Adding a player still takes a SQL row, a Discord channel and a restart
+  (no code or `.env` changes since D-020). `/player add` is planned; see
+  D-020 and *Player Onboarding* in [`AI_DM_CHECKLIST.md`](AI_DM_CHECKLIST.md).
 - Each DM reply only gets what its channel's audience may see (D-004).
   Character knowledge, DM notes and NPC facts are filtered in code. Only
   DM-authored NPC author notes rely on the model not revealing them (D-007).

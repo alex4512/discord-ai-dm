@@ -1,6 +1,7 @@
 import { config } from '../../config.js';
 import { UserFacingError } from '../../errors/UserFacingError.js';
 import { reply } from '../reply.js';
+import { isPrivateChannel } from '../../services/roster.js';
 import { audienceForChannel, renderSnapshot } from '../checkpointView.js';
 import {
   getActiveCheckpoint,
@@ -129,7 +130,7 @@ const PRIVATE_ACTIONS = new Set(['show', 'help']);
 
 function channelRestriction(channelId, action) {
   const { main, test } = config.channels;
-  const isPrivate = config.privateChannels.some(c => c.channelId === channelId);
+  const isPrivate = isPrivateChannel(channelId);
 
   if (channelId === main) return null;
 

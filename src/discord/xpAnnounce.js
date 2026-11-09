@@ -1,6 +1,6 @@
 import { config } from '../config.js';
-import { getPlayers } from '../db/repositories/playerRepository.js';
 import { nextLevelXp } from '../services/progressService.js';
+import { getPrivateChannels } from '../services/roster.js';
 import { formatXpAward } from '../services/xp.js';
 
 const send = (channel, content) =>
@@ -17,13 +17,9 @@ export function formatXpStatus({ characterName, xp, level }) {
   );
 }
 
-/** Private channel id per character name. */
-async function privateChannelsByName(guildId) {
-  const players = await getPlayers(guildId);
-  return Object.fromEntries(players.flatMap(p => {
-    const channel = config.privateChannels.find(c => c.ownerId === p.discord_user_id);
-    return channel ? [[p.character_name, channel.channelId]] : [];
-  }));
+/** Private channel id per character name (D-020). */
+function privateChannelsByName() {
+  return Object.fromEntries(getPrivateChannels().map(c => [c.characterName, c.channelId]));
 }
 
 /**
@@ -33,7 +29,7 @@ async function privateChannelsByName(guildId) {
  */
 export async function announceXp(message, { award, results, testMode = false }) {
   const channelId = message.channel.id;
-  const privateByName = await privateChannelsByName(message.guild.id);
+  const privateByName = privateChannelsByName();
   const ownerHere = Object.keys(privateByName).find(n => privateByName[n] === channelId);
 
   const lines = [formatXpAward(award)];
@@ -50,6 +46,7 @@ export async function announceXp(message, { award, results, testMode = false }) 
     if (result.level <= result.previousLevel) continue;
 
     const target = privateByName[result.characterName];
+    if (!target) continue;
     const channel = target === channelId
       ? message.channel
       : await message.client.channels.fetch(target).catch(() => null);

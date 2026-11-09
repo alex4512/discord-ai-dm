@@ -9,6 +9,7 @@ import { awardEntries, parseXpTag, xpHistoryNote } from '../../services/xp.js';
 import { recordAwards, setXp, xpReport } from '../../services/progressService.js';
 import { announceXp, formatXpStatus } from '../xpAnnounce.js';
 import { storeMessage } from '../../db/repositories/messageRepository.js';
+import { isCampaignChannel } from '../../services/roster.js';
 
 /** Readers + filtered views for the channel a command was sent in. */
 async function channelView(ctx) {
@@ -185,7 +186,7 @@ const xpCommand = {
     const award = parseXpTag(body, names, levels);
     if (!award) return reply(message, XP_HELP);
 
-    if (config.campaignChannelIds.includes(ctx.channelId)) {
+    if (isCampaignChannel(ctx.channelId)) {
       const state = await getActiveCheckpoint(ctx.guildId);
       if (state) {
         await storeMessage({
