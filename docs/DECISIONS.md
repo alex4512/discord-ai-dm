@@ -108,3 +108,48 @@ checkpoint. Since v1 it wasn't used in any prompt.
 
 **Consequences.** Kraavok's solo history is available again, in the right
 partition, and can't leak to Looming Shade through the shared checkpoint.
+
+---
+
+## D-004: DM reply prompts contain only what the channel's audience may see
+
+**Date:** 2026-11-09 · **Status:** accepted · **Code:** `src/services/audience.js`
+
+**Context.** Commit 3 stored character knowledge and DM notes, but DM replies
+ignored them. Private channels also fed the model their entire raw history.
+
+**Decision.** Each DM turn builds its prompt for the channel's audience (D-002):
+
+| Channel | Shared checkpoint | Character knowledge | DM notes | History |
+|---|---|---|---|---|
+| `#main-adventure` | yes | **none** | filtered for *all* registered characters | main, since boundary |
+| private channel | yes | **own only** | filtered for the owner | own channel, since boundary |
+| `#dm-testing` | yes | all | all | none (nothing persisted) |
+
+**Filtering DM notes.** A `dm_notes.secrets` entry is included only if
+**every** reader of the channel appears in its `known_by` (matched exactly,
+ignoring case and surrounding spaces). The filter fails closed: a secret with
+a missing or misspelled `known_by` is dropped. This part is mechanical, so a
+secret only Kraavok knows can't reach Looming Shade's prompt.
+
+The other DM-notes fields (`world_truth`, `npc_developments`, `open_threads`,
+`continuity_warnings`) are included and labelled *DM ONLY; never reveal
+directly*. The DM needs them to keep the world consistent across channels.
+
+**Trade-off (accepted).** Those other fields, and the NPC registry with
+`secrets`, which was already in every prompt before this change, rely on the
+model obeying the "don't reveal" instruction. They are **not** a mechanical
+privacy boundary. If leaks show up in play, the next step is to also
+classify world_truth entries by who knows them, the same way secrets are.
+
+**Why no character knowledge in `#main-adventure`.** Its output is read by
+every player. If a player wants their character to share something, they say
+it in-game. That's also how knowledge transfers (it then gets summarized into
+the other character's record at the next save).
+
+**History boundary everywhere.** Private channels now start at the same
+`boundary_seq` as main, because everything before it is summarized in the
+character's knowledge record (D-001). This assumes private messages before a
+boundary were summarized. That holds for every boundary set since D-001.
+The only pre-D-001 boundary (v1) was abandoned by rollback, and the active
+timeline at the time of this change had no boundary.

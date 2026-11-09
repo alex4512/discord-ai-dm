@@ -71,6 +71,7 @@ src/
 │   ├── checkpointSchema.js   # Strict JSON schemas: shared, character, DM notes
 │   └── dungeonMaster.js      # OpenAI calls (DM reply, isolated checkpoint parts)
 ├── services/                 # Business logic; no Discord types
+│   ├── audience.js           # Channel -> audience; per-audience filtering
 │   ├── campaignService.js
 │   ├── checkpointService.js
 │   └── dungeonMasterService.js
@@ -117,8 +118,9 @@ Looming Shade.
 ## Caveats
 
 - No Avrae result ingestion yet.
-- DM replies in private channels still use the full active-timeline
-  private history, not the checkpoint boundary plus character knowledge.
+- Each DM reply only gets what its channel's audience may see (D-004).
+  Character knowledge and secrets are filtered in code. Other DM notes and
+  NPC secrets rely on the model not revealing them.
 - No usage or budget accounting.
 - Treat model output as narrative, not as proof that data isolation has
   been audited.

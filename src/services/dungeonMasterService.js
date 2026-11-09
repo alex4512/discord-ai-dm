@@ -1,4 +1,3 @@
-import { config } from '../config.js';
 import { getState } from '../db/repositories/stateRepository.js';
 import { deleteMessage, getHistory, storeMessage } from '../db/repositories/messageRepository.js';
 import { getPlayers } from '../db/repositories/playerRepository.js';
@@ -6,10 +5,21 @@ import { getNpcs } from '../db/repositories/npcRepository.js';
 import { generateDmReply } from '../ai/dungeonMaster.js';
 import { buildDmInstructions, buildPlayerInput } from '../ai/prompts.js';
 import { getCampaignLegacyCheckpoint } from './campaignService.js';
+import {
+  audienceForChannel,
+  characterKnowledgeFor,
+  dmNotesFor,
+  readersOf
+} from './audience.js';
 
 /**
  * Runs one Dungeon Master turn for a player message and persists both
  * sides of the exchange (except in the test channel).
+ *
+ * The prompt contains only what the channel's audience may see (D-004).
+ * History starts at the checkpoint boundary in every channel; everything
+ * before it is summarized in the shared checkpoint, the character's
+ * knowledge record and the DM notes.
  */
 export async function playTurn({
   guildId,
@@ -20,14 +30,9 @@ export async function playTurn({
   player,
   prompt
 }) {
-  const testMode = channelId === config.channels.test;
+  const audience = audienceForChannel(channelId, player);
+  const testMode = audience.kind === 'dm';
   const state = await getState(guildId);
-
-  // Main-adventure history is trimmed at the checkpoint boundary.
-  // Private channels keep their whole active-timeline history until
-  // private checkpoints exist.
-  const historyAfterSeq =
-    channelId === config.channels.main ? state.boundary_seq : null;
 
   const [history, legacyCheckpoint, players, npcs] = await Promise.all([
     testMode
@@ -36,7 +41,7 @@ export async function playTurn({
           guildId,
           channelId,
           timelineId: state.timeline_id,
-          afterSeq: historyAfterSeq
+          afterSeq: state.boundary_seq
         }),
     state.version === 0 ? getCampaignLegacyCheckpoint(guildId) : null,
     getPlayers(guildId),
@@ -45,10 +50,13 @@ export async function playTurn({
 
   const instructions = buildDmInstructions({
     channelId,
+    audience,
     player,
     players,
     state,
     legacyCheckpoint,
+    characterKnowledge: characterKnowledgeFor(state.character_knowledge, audience),
+    dmNotes: dmNotesFor(state.dm_notes, readersOf(audience, players)),
     npcs,
     testMode
   });

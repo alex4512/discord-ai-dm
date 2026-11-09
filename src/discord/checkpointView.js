@@ -1,4 +1,3 @@
-import { config } from '../config.js';
 import {
   characterKnowledgeSchema,
   checkpointSchema,
@@ -28,26 +27,8 @@ function orderBySchema(value, schema) {
   return ordered;
 }
 
-/**
- * Who can read a channel (docs/DECISIONS.md, D-002):
- *   #dm-testing      -> dm         (the DM's debug channel: everything)
- *   private channel  -> character  (shared world + own knowledge)
- *   anything else    -> shared     (shared world only)
- *
- * Private channels are owner-only (enforced in access.js), so the author
- * of a message there is the channel's character.
- */
-export function audienceForChannel(channelId, player) {
-  if (channelId === config.channels.test) {
-    return { kind: 'dm' };
-  }
-
-  if (config.privateChannels.some(c => c.channelId === channelId)) {
-    return { kind: 'character', name: player.character_name };
-  }
-
-  return { kind: 'shared' };
-}
+// Channel -> audience mapping lives in services/audience.js (D-002).
+export { audienceForChannel } from '../services/audience.js';
 
 const json = (value, schema) => JSON.stringify(orderBySchema(value, schema), null, 2);
 const section = (title, body) => `**${title}**\n${body}`;

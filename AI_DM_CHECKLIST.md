@@ -41,13 +41,13 @@
 - [x] Initial pre-meeting Dunmere checkpoint saved
 - [x] Manual rollback test restored the initial checkpoint content
 - [x] Manual character-knowledge check: Kraavok does not know Looming Shade after rollback
-- ⚠️ Safe checkpoint boundaries for both private histories — checkpoints use one `boundary_seq` for all channels; DM replies in private channels don't apply it yet
+- [x] Safe checkpoint boundaries for both private histories — one `boundary_seq` for all channels, in checkpoints and DM replies (D-004)
 - [x] Checkpoint generation accounts for events from all three channels — shared from main; private events go to character knowledge and DM notes (D-001)
 - ⚠️ Full rollback test with distinct events in main and both private channels — passed 2026-11-09 for main + Kraavok private (see manual test below); Looming private pending
 - ⚠️ Robust transactional consistency across multiple bot instances — `messages.seq` high-water marks and advisory locks; the busy guard is still in-process only
 - [ ] Explicit checkpoint editing workflow (beyond regenerate / cancel / confirm)
 
-**Known limitation:** DM replies in private channels still read the full active-timeline private history instead of the checkpoint boundary plus the character's knowledge record. Checkpoint generation already reads all three channels.
+**Known limitation:** Non-secret DM notes (`world_truth`, NPC developments) and NPC registry secrets reach every channel's prompt labelled DM-only; keeping them private relies on the model (D-004 trade-off).
 
 ## 3. Multiplayer Synchronization & Character Knowledge — NEXT PRIORITY
 
@@ -55,8 +55,8 @@
 - [x] Separate per-channel conversation histories
 - [x] Define a durable shared-world state versus per-character knowledge model (D-001)
 - [x] Persist discoveries, secrets, and observations per character (`character_knowledge`)
-- ⚠️ Allow the DM to account for events in both private channels — summarized into `dm_notes`; not yet used in DM reply prompts
-- [ ] Prevent private knowledge from leaking into another player's narration
+- [x] Allow the DM to account for events in both private channels — `dm_notes` in every DM prompt, secrets filtered per audience (D-004)
+- ⚠️ Prevent private knowledge from leaking into another player's narration — character knowledge and secrets excluded mechanically; non-secret DM notes rely on the model (D-004)
 - [ ] Synchronize world-changing private events with shared campaign state
 - [ ] Transfer knowledge between characters only through appropriate in-game events
 - [x] Make checkpoint previews / `show` safe for shared-channel visibility (D-002)
@@ -123,8 +123,8 @@
 
 - [x] Design per-character knowledge storage
 - [ ] Incorporate private-channel events into DM world awareness
-- ⚠️ Build spoiler-safe prompt and checkpoint views — checkpoint views done; prompts next
-- ⚠️ Implement safe private-history checkpoint boundaries
+- [x] Build spoiler-safe prompt and checkpoint views (D-002, D-004)
+- [x] Implement safe private-history checkpoint boundaries
 - [ ] Run end-to-end secrecy and information-sharing tests
 
 ### Milestone 3 — Character State & Avrae

@@ -29,6 +29,11 @@ CAMPAIGN MEMORY RULES:
    to other players without an in-world reason.
 7. Legacy checkpoints are historical reference only
    and must not override active shared state.
+8. CHARACTER KNOWLEDGE is what that character personally knows.
+   In a private channel you may use it freely with its owner.
+9. DM NOTES are for you only. Use them to keep the world
+   consistent, but never state them to players directly;
+   players learn them only through in-world events.
 
 For OOC questions, answer without advancing the narrative.
 
@@ -137,44 +142,77 @@ export function toCharacterSummary(player) {
   };
 }
 
-/** System instructions for a regular Dungeon Master turn. */
+const AUDIENCE_DESCRIPTIONS = {
+  shared: 'Shared channel: every player reads your reply.',
+  character: name => `Private channel: only ${name}'s player reads your reply.`,
+  dm: 'DM testing channel: only the Dungeon Master reads your reply.'
+};
+
+function describeAudience(audience) {
+  const description = AUDIENCE_DESCRIPTIONS[audience.kind];
+  return typeof description === 'function'
+    ? description(audience.name)
+    : description;
+}
+
+/**
+ * System instructions for a regular Dungeon Master turn. Callers pass only
+ * what the channel's audience may see (D-004): `characterKnowledge` and
+ * `dmNotes` must already be filtered for the audience.
+ */
 export function buildDmInstructions({
   channelId,
+  audience,
   player,
   players,
   state,
   legacyCheckpoint,
+  characterKnowledge,
+  dmNotes,
   npcs,
   testMode
 }) {
   const hasSavedCheckpoint = state.version > 0;
+  const knowledgeEntries = Object.entries(characterKnowledge || {});
 
-  return `
-${DM_RULES}
+  const blocks = [
+    DM_RULES,
 
-CURRENT CHANNEL:
-${channelId}
+    `CURRENT CHANNEL:\n${channelId}\n${describeAudience(audience)}`,
 
-CURRENT PLAYER:
-${JSON.stringify(player)}
+    `CURRENT PLAYER:\n${JSON.stringify(player)}`,
 
-REGISTERED PLAYER CHARACTERS:
-${JSON.stringify(players.map(toCharacterSummary))}
+    'REGISTERED PLAYER CHARACTERS:\n' +
+      JSON.stringify(players.map(toCharacterSummary)),
 
-ACTIVE CHECKPOINT VERSION:
-${state.version}
+    `ACTIVE CHECKPOINT VERSION:\n${state.version}`,
 
-ACTIVE SHARED CHECKPOINT:
-${JSON.stringify(hasSavedCheckpoint ? state.checkpoint : null)}
+    'ACTIVE SHARED CHECKPOINT:\n' +
+      JSON.stringify(hasSavedCheckpoint ? state.checkpoint : null)
+  ];
 
-${hasSavedCheckpoint ? '' : `LEGACY KRAAVOK REFERENCE:
-${JSON.stringify(legacyCheckpoint)}`}
+  if (!hasSavedCheckpoint) {
+    blocks.push(`LEGACY KRAAVOK REFERENCE:\n${JSON.stringify(legacyCheckpoint)}`);
+  }
 
-NPC REGISTRY (DM ONLY):
-${JSON.stringify(npcs)}
+  for (const [name, knowledge] of knowledgeEntries) {
+    blocks.push(
+      `CHARACTER KNOWLEDGE (${name}; known only to ${name}):\n` +
+      JSON.stringify(knowledge)
+    );
+  }
 
-${testMode ? TEST_MODE_BLOCK : ''}
-`;
+  if (dmNotes) {
+    blocks.push(
+      'DM NOTES (DM ONLY; never reveal directly):\n' + JSON.stringify(dmNotes)
+    );
+  }
+
+  blocks.push(`NPC REGISTRY (DM ONLY):\n${JSON.stringify(npcs)}`);
+
+  if (testMode) blocks.push(TEST_MODE_BLOCK);
+
+  return `\n${blocks.join('\n\n')}\n`;
 }
 
 /** The player's turn as sent to the model (and persisted to history). */
