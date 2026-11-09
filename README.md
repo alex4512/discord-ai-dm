@@ -7,11 +7,11 @@ longer used as canon.
 
 ## Setup
 
-1. Node.js 20+ and a PostgreSQL database with the campaign schema applied
-   (see [Database](#database)).
+1. Node.js 20+ and a PostgreSQL database.
 2. `npm install`
 3. `cp .env.example .env` and fill in the values.
-4. `npm start` (or `npm run dev` for watch mode).
+4. `npm run migrate` to create or update the schema (see [Database](#database)).
+5. `npm start` (or `npm run dev` for watch mode).
 
 ## Usage
 
@@ -50,7 +50,8 @@ src/
 │   └── UserFacingError.js    # Expected errors whose message is shown to users
 ├── db/
 │   ├── pool.js               # pg pool, guild-locked transactions, DB clock
-│   ├── schema.js             # Startup schema verification
+│   ├── migrator.js           # Applies migrations/*.sql, tracks schema_migrations
+│   ├── schema.js             # Startup check: no pending migrations
 │   └── repositories/         # One module per table group, SQL only
 │       ├── stateRepository.js
 │       ├── checkpointRepository.js
@@ -72,18 +73,36 @@ src/
     ├── reply.js              # Chunked replies without pings
     ├── commands/checkpointCommand.js
     └── handlers/messageCreate.js
+migrations/                   # Numbered SQL schema migrations
+scripts/migrate.js            # `npm run migrate` entry point
 ```
 
 Dependencies only point downward: `discord` → `services` → `db` / `ai`.
 
 ## Database
 
-The bot does not create tables. At startup it checks that these tables
-exist: `messages`, `campaign_players`, `campaign_npcs`,
-`campaign_checkpoints`, `campaign_state`, `campaign_checkpoint_versions`
-and `campaign_checkpoint_drafts`. It also checks for the timeline and
-boundary columns. Startup also requires that `campaign_players` contains
-both Kraavok and Looming Shade.
+Schema changes live in [`migrations/`](migrations/) as numbered SQL
+files (`0001_baseline.sql`, `0002_...`). Applied migrations are recorded
+in the `schema_migrations` table.
+
+```bash
+npm run migrate -- status   # list pending migrations
+npm run migrate             # apply them, each in its own transaction
+```
+
+- The bot refuses to start while migrations are pending. It never runs
+  them on its own.
+- Migrations only move forward. To undo one, write a new migration that
+  reverses it, and take a `pg_dump` backup before any migration that
+  changes data.
+- Run migrations as `dnd_bot`, the role that owns the tables, so no extra
+  `GRANT`s are needed.
+- `0001_baseline.sql` reproduces the schema from before migrations were
+  tracked. On an existing database it changes nothing and is only
+  recorded as applied.
+
+Startup also requires that `campaign_players` contains both Kraavok and
+Looming Shade.
 
 ## Caveats
 
