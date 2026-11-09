@@ -4,7 +4,7 @@ import { getActiveCheckpoint } from '../../services/checkpointService.js';
 import { getPlayers } from '../../db/repositories/playerRepository.js';
 import { audienceForChannel, npcsFor, readersOf } from '../../services/audience.js';
 import { addAuthorNote } from '../../services/npcService.js';
-import { findNpcKey } from '../../services/npcRegistry.js';
+import { findKey } from '../../services/registry.js';
 
 const COMMAND_PATTERN = /^\/npc(?:\s+([\s\S]+))?$/i;
 
@@ -54,7 +54,7 @@ async function show(ctx, name) {
   if (!name) return 'Usage: /npc show <name>';
 
   const npcs = await npcsForChannel(ctx.guildId, ctx.channelId, ctx.player);
-  const key = findNpcKey(npcs, name);
+  const key = findKey(npcs, name);
 
   if (!key) return `No NPC named "${name}" is known here.`;
 

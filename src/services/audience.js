@@ -1,4 +1,5 @@
 import { config } from '../config.js';
+import { REGISTRY_KINDS } from './registry.js';
 
 /**
  * Who can read a channel (docs/DECISIONS.md, D-002):
@@ -103,48 +104,49 @@ export function characterKnowledgeFor(characterKnowledge, audience) {
 }
 
 /**
- * NPC registry for a set of readers (D-007).
+ * A registry partition (NPCs, locations) for a set of readers (D-007).
  *
- * - role / appearance / personality: shared perception; dropped if they
- *   mention a player character (same fail-closed guard as D-006).
- * - status / location / facts: only if EVERY reader is in known_by.
+ * - perceivable fields (e.g. role, appearance): shared perception; dropped
+ *   if they mention a player character (same fail-closed guard as D-006).
+ * - tagged fields (e.g. status) and facts: only if EVERY reader is in
+ *   known_by.
  * - author_notes (DM-authored truth): only when `includeAuthorNotes`,
  *   i.e. in DM reply prompts, never in summarization inputs or player views.
+ * - An entry is part of a player audience's world only once every reader
+ *   knows something about it (a tagged value or a fact). Unknown entries,
+ *   and their author notes, are left out entirely (D-007 revision).
  *
  * `readers === null` (the DM) gets the raw registry.
  */
-export function npcsFor(npcs, readers, characterNames = [], { includeAuthorNotes = false } = {}) {
-  if (!npcs) return {};
-  if (!readers) return npcs;
+export function registryFor(kind, entries, readers, characterNames = [], { includeAuthorNotes = false } = {}) {
+  if (!entries) return {};
+  if (!readers) return entries;
 
+  const { perceivable, tagged } = REGISTRY_KINDS[kind];
   const wanted = readers.map(normalize);
   const parts = nameParts([...characterNames, ...readers]);
-  const perceivable = text =>
+  const perceived = text =>
     typeof text === 'string' && !parts.some(part => normalize(text).includes(part))
       ? text
       : '';
-  const ifKnown = tagged => (knownByAll(tagged, wanted) ? tagged.value : null);
+  const ifKnown = value => (knownByAll(value, wanted) ? value.value : null);
 
-  const views = Object.entries(npcs).map(([key, npc]) => {
-    const view = {
-      name: npc.name || key,
-      role: perceivable(npc.role),
-      appearance: perceivable(npc.appearance),
-      personality: perceivable(npc.personality),
-      status: ifKnown(npc.status),
-      location: ifKnown(npc.location),
-      facts: (npc.facts || [])
-        .filter(fact => knownByAll(fact, wanted))
-        .map(fact => fact.fact)
-    };
-    if (includeAuthorNotes) view.author_notes = npc.author_notes || [];
+  const views = Object.entries(entries).map(([key, entry]) => {
+    const view = { name: entry.name || key };
+    for (const field of perceivable) view[field] = perceived(entry[field]);
+    for (const field of tagged) view[field] = ifKnown(entry[field]);
+    view.facts = (entry.facts || [])
+      .filter(fact => knownByAll(fact, wanted))
+      .map(fact => fact.fact);
+    if (includeAuthorNotes) view.author_notes = entry.author_notes || [];
     return [key, view];
   });
 
-  // D-007 revision: an NPC is only part of a player audience's world once
-  // every reader knows something about them (status, location or a fact).
-  // Unknown NPCs, and their author notes, are left out entirely.
   return Object.fromEntries(
-    views.filter(([, view]) => view.status || view.location || view.facts.length)
+    views.filter(([, view]) => tagged.some(field => view[field]) || view.facts.length)
   );
 }
+
+/** NPC registry for a set of readers (D-007). */
+export const npcsFor = (npcs, readers, characterNames, options) =>
+  registryFor('npcs', npcs, readers, characterNames, options);

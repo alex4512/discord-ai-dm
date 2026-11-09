@@ -19,7 +19,8 @@ import {
   generateSharedCheckpoint
 } from '../ai/dungeonMaster.js';
 import { npcsFor } from './audience.js';
-import { mergeNpcUpdate } from './npcRegistry.js';
+import { mergeUpdate } from './registry.js';
+import { toSnapshot } from '../db/partitions.js';
 import { toCharacterSummary } from '../ai/prompts.js';
 import { getCampaignLegacyCheckpoint } from './campaignService.js';
 
@@ -32,15 +33,6 @@ function campaignChangedAfter(guildId, timelineId, sinceSeq, db) {
   }, db);
 }
 
-/** The audience partitions of a state/draft/version row. */
-function toSnapshot(row) {
-  return {
-    checkpoint: row.checkpoint,
-    character_knowledge: row.character_knowledge || {},
-    dm_notes: row.dm_notes || null,
-    npcs: row.npcs || {}
-  };
-}
 
 /** Private channels joined with the registered player who owns each. */
 function getPrivateScopes(players) {
@@ -200,7 +192,7 @@ export async function createCheckpointDraft({ guildId, authorId }) {
       ...Object.fromEntries(characterEntries)
     },
     dm_notes: dmNotes,
-    npcs: mergeNpcUpdate(previous.npcs, npcList)
+    npcs: mergeUpdate(previous.npcs, npcList)
   };
 
   const latestState = await stateRepo.getState(guildId);

@@ -1,6 +1,6 @@
 import { UserFacingError } from '../errors/UserFacingError.js';
 import { amendActiveSnapshot } from './checkpointService.js';
-import { findNpcKey, mergeSeed } from './npcRegistry.js';
+import { findKey, mergeSeed } from './registry.js';
 
 /**
  * Adds DM-authored truth about an NPC (creating the NPC if new) as a new
@@ -20,8 +20,8 @@ export async function addAuthorNote({ guildId, userId, npcName, note }) {
     userId,
     reason: `npc note: ${name}`,
     mutate: snapshot => {
-      snapshot.npcs = mergeSeed(snapshot.npcs, { [name]: { author_notes: [text] } });
-      key = findNpcKey(snapshot.npcs, name);
+      snapshot.npcs = mergeSeed('npcs', snapshot.npcs, { [name]: { author_notes: [text] } });
+      key = findKey(snapshot.npcs, name);
       return snapshot;
     }
   });
@@ -36,7 +36,7 @@ export function importNpcSeed({ guildId, userId, seed, reason = 'npc import' }) 
     userId,
     reason,
     mutate: snapshot => {
-      snapshot.npcs = mergeSeed(snapshot.npcs, seed);
+      snapshot.npcs = mergeSeed('npcs', snapshot.npcs, seed);
       return snapshot;
     }
   });

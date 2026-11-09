@@ -1,9 +1,17 @@
 import { pool } from '../pool.js';
+import {
+  PARTITIONS,
+  PARTITION_COLUMNS,
+  partitionAssignments,
+  partitionValues
+} from '../partitions.js';
+
+const STATE_COLUMNS = `${PARTITION_COLUMNS}, version, timeline_id, boundary_at, boundary_seq`;
+const N = PARTITIONS.length;
 
 export async function getState(guildId, db = pool) {
   const result = await db.query(`
-    SELECT checkpoint, character_knowledge, dm_notes, npcs,
-           version, timeline_id, boundary_at, boundary_seq
+    SELECT ${STATE_COLUMNS}
     FROM public.campaign_state
     WHERE guild_id = $1
   `, [guildId]);
@@ -13,8 +21,7 @@ export async function getState(guildId, db = pool) {
 
 export async function getStateForUpdate(db, guildId) {
   const result = await db.query(`
-    SELECT checkpoint, character_knowledge, dm_notes, npcs,
-           version, timeline_id, boundary_at, boundary_seq
+    SELECT ${STATE_COLUMNS}
     FROM public.campaign_state
     WHERE guild_id = $1
     FOR UPDATE
@@ -54,25 +61,13 @@ export async function advanceCheckpoint(db, {
 }) {
   await db.query(`
     UPDATE public.campaign_state
-    SET checkpoint = $2,
-        character_knowledge = $3,
-        dm_notes = $4,
-        npcs = $5,
-        version = $6,
-        boundary_at = $7,
-        boundary_seq = $8,
+    SET ${partitionAssignments(2)},
+        version = $${N + 2},
+        boundary_at = $${N + 3},
+        boundary_seq = $${N + 4},
         updated_at = NOW()
     WHERE guild_id = $1
-  `, [
-    guildId,
-    snapshot.checkpoint,
-    snapshot.character_knowledge,
-    snapshot.dm_notes,
-    snapshot.npcs,
-    version,
-    boundaryAt,
-    boundarySeq
-  ]);
+  `, [guildId, ...partitionValues(snapshot), version, boundaryAt, boundarySeq]);
 }
 
 /** Restores a snapshot onto a brand-new timeline (after a rollback). */
@@ -84,25 +79,14 @@ export async function resetToTimeline(db, {
 }) {
   await db.query(`
     UPDATE public.campaign_state
-    SET checkpoint = $2,
-        character_knowledge = $3,
-        dm_notes = $4,
-        npcs = $5,
-        version = $6,
-        timeline_id = $7,
+    SET ${partitionAssignments(2)},
+        version = $${N + 2},
+        timeline_id = $${N + 3},
         boundary_at = NULL,
         boundary_seq = NULL,
         updated_at = NOW()
     WHERE guild_id = $1
-  `, [
-    guildId,
-    snapshot.checkpoint,
-    snapshot.character_knowledge,
-    snapshot.dm_notes,
-    snapshot.npcs,
-    version,
-    timelineId
-  ]);
+  `, [guildId, ...partitionValues(snapshot), version, timelineId]);
 }
 
 /**
@@ -112,19 +96,9 @@ export async function resetToTimeline(db, {
 export async function replaceSnapshot(db, { guildId, snapshot, version }) {
   await db.query(`
     UPDATE public.campaign_state
-    SET checkpoint = $2,
-        character_knowledge = $3,
-        dm_notes = $4,
-        npcs = $5,
-        version = $6,
+    SET ${partitionAssignments(2)},
+        version = $${N + 2},
         updated_at = NOW()
     WHERE guild_id = $1
-  `, [
-    guildId,
-    snapshot.checkpoint,
-    snapshot.character_knowledge,
-    snapshot.dm_notes,
-    snapshot.npcs,
-    version
-  ]);
+  `, [guildId, ...partitionValues(snapshot), version]);
 }

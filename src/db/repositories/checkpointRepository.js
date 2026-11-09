@@ -1,7 +1,13 @@
 import { pool } from '../pool.js';
+import {
+  PARTITIONS,
+  PARTITION_COLUMNS,
+  partitionPlaceholders,
+  partitionValues
+} from '../partitions.js';
 
-// A "snapshot" is the audience partitions saved together:
-//   { checkpoint, character_knowledge, dm_notes, npcs }
+// A "snapshot" is the partitions saved together (see db/partitions.js).
+const N = PARTITIONS.length;
 
 // ---------- Legacy (pre-versioning) checkpoint ----------
 
@@ -20,10 +26,16 @@ export async function getLegacyCheckpoint({ guildId, characterName, ownerId }) {
 
 // ---------- Drafts (one per guild) ----------
 
-const DRAFT_COLUMNS = `
-  checkpoint, character_knowledge, dm_notes, npcs, based_on_version, created_by,
-  timeline_id, boundary_message_id, boundary_at, boundary_seq, created_at
-`;
+const DRAFT_META = [
+  'based_on_version',
+  'created_by',
+  'timeline_id',
+  'boundary_message_id',
+  'boundary_at',
+  'boundary_seq'
+];
+
+const DRAFT_COLUMNS = `${PARTITION_COLUMNS}, ${DRAFT_META.join(', ')}, created_at`;
 
 export async function upsertDraft({
   guildId,
@@ -35,31 +47,21 @@ export async function upsertDraft({
   boundaryAt,
   boundarySeq
 }, db = pool) {
+  const columns = [...PARTITIONS, ...DRAFT_META];
+  const placeholders = columns.map((_, i) => `$${i + 2}`).join(', ');
+  const updates = columns.map(c => `${c} = EXCLUDED.${c}`).join(',\n      ');
+
   await db.query(`
     INSERT INTO public.campaign_checkpoint_drafts (
-      guild_id, checkpoint, character_knowledge, dm_notes, npcs,
-      based_on_version, created_by, timeline_id,
-      boundary_message_id, boundary_at, boundary_seq, created_at
+      guild_id, ${columns.join(', ')}, created_at
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
+    VALUES ($1, ${placeholders}, NOW())
     ON CONFLICT (guild_id) DO UPDATE SET
-      checkpoint = EXCLUDED.checkpoint,
-      character_knowledge = EXCLUDED.character_knowledge,
-      dm_notes = EXCLUDED.dm_notes,
-      npcs = EXCLUDED.npcs,
-      based_on_version = EXCLUDED.based_on_version,
-      created_by = EXCLUDED.created_by,
-      timeline_id = EXCLUDED.timeline_id,
-      boundary_message_id = EXCLUDED.boundary_message_id,
-      boundary_at = EXCLUDED.boundary_at,
-      boundary_seq = EXCLUDED.boundary_seq,
+      ${updates},
       created_at = NOW()
   `, [
     guildId,
-    snapshot.checkpoint,
-    snapshot.character_knowledge,
-    snapshot.dm_notes,
-    snapshot.npcs,
+    ...partitionValues(snapshot),
     basedOnVersion,
     createdBy,
     timelineId,
@@ -123,18 +125,18 @@ export async function insertVersion(db, {
 }) {
   await db.query(`
     INSERT INTO public.campaign_checkpoint_versions (
-      guild_id, version, checkpoint, character_knowledge, dm_notes, npcs,
+      guild_id, version, ${PARTITION_COLUMNS},
       created_by, reason, timeline_id,
       boundary_message_id, boundary_at, boundary_seq
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+    VALUES (
+      $1, $2, ${partitionPlaceholders(3)},
+      $${N + 3}, $${N + 4}, $${N + 5}, $${N + 6}, $${N + 7}, $${N + 8}
+    )
   `, [
     guildId,
     version,
-    snapshot.checkpoint,
-    snapshot.character_knowledge,
-    snapshot.dm_notes,
-    snapshot.npcs,
+    ...partitionValues(snapshot),
     createdBy,
     reason,
     timelineId,
@@ -146,7 +148,7 @@ export async function insertVersion(db, {
 
 export async function getVersion(guildId, version, db = pool) {
   const result = await db.query(`
-    SELECT checkpoint, character_knowledge, dm_notes, npcs
+    SELECT ${PARTITION_COLUMNS}
     FROM public.campaign_checkpoint_versions
     WHERE guild_id = $1
       AND version = $2
