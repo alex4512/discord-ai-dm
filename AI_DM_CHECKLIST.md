@@ -1,5 +1,6 @@
 # Discord AI Dungeon Master — Project Checklist
 
+**Owner:** Alexis Argyrakopoulos  
 **Repository:** https://github.com/alex4512/discord-ai-dm  
 **Stack:** Node.js · Discord.js · OpenAI Responses API · PostgreSQL · D&D 5e (2014 RAW)  
 **Campaign:** Dunmere / Northern Marches · Kraavok & Looming Shade  

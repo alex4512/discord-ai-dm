@@ -1,5 +1,7 @@
 # Discord AI Dungeon Master
 
+**Owner:** Alexis Argyrakopoulos
+
 A Discord bot that runs a shared D&D 5e (2014 RAW) campaign using OpenAI.
 Campaign memory lives in PostgreSQL. It uses versioned shared checkpoints
 with timelines, so a rollback leaves the abandoned events stored but no
