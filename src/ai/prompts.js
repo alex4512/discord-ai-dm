@@ -484,6 +484,28 @@ function charactersFor(audience, player, players) {
   );
 }
 
+export const MAP_INSTRUCTIONS = `
+Sketch the CURRENT scene of a D&D 5e campaign as a top-down tactical grid,
+from the supplied material only. One square = 5 feet.
+
+- Place every creature present in the current scene as a token: player
+  characters and companions (party or ally), foes (enemy), others (neutral).
+  id: 1-2 characters, unique (e.g. K for Kraavok, L for Looming Shade,
+  G1, G2 for goblins, B for Brann). name: who it is.
+- Add the terrain that matters for movement and cover as rectangles:
+  walls, doors, water, difficult terrain, cover (crates, pillars, rocks),
+  trees, fire, pits, stairs. x, y = top-left square; w, h = size in squares.
+  label: short name ("north wall", "well") or empty string.
+- Choose width and height (4 to 24) to fit the scene with a little room.
+- Positions follow the latest narration (distances, "next to", "across the
+  room"). Where the material is vague, choose something plausible and
+  consistent, and say so briefly in notes.
+- If the request names a focus, sketch that.
+- Never add creatures or features the material doesn't support.
+- title: a short name for the place.
+Return only JSON matching the required schema.
+`;
+
 export const IMAGE_PROMPT_INSTRUCTIONS = `
 Write a prompt for an image-generation model that depicts one scene from a
 D&D 5e fantasy campaign.

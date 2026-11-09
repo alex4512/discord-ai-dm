@@ -9,8 +9,10 @@ import {
   CHARACTER_KNOWLEDGE_INSTRUCTIONS,
   CHECKPOINT_INSTRUCTIONS,
   DM_NOTES_INSTRUCTIONS,
+  MAP_INSTRUCTIONS,
   WORLD_UPDATE_INSTRUCTIONS
 } from './prompts.js';
+import { sceneMapSchema } from './mapSchema.js';
 import { config } from '../config.js';
 import { rollDice } from '../services/dice.js';
 
@@ -170,6 +172,16 @@ export function generateDmNotes(context) {
     name: 'dm_notes',
     schema: dmNotesSchema,
     instructions: DM_NOTES_INSTRUCTIONS,
+    context
+  });
+}
+
+/** Scene sketch for /map (D-018). Context: the channel's own view only. */
+export function generateSceneMap(context) {
+  return generateStructured({
+    name: 'scene_map',
+    schema: sceneMapSchema,
+    instructions: MAP_INSTRUCTIONS,
     context
   });
 }

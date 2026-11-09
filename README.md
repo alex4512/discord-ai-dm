@@ -97,6 +97,17 @@ To import NPCs, locations and past events once, run
 Seed files hold canon and DM secrets, and the repo is public, so keep them in
 `data/*.local.json` (gitignored).
 
+### Scene maps
+
+`/map` sketches the current scene as a top-down tactical grid (D-018).
+One cheap model call places creatures and terrain as data, and the code
+draws it, so positions stay exact. The image model is never used.
+
+| Command | Where | Effect |
+| --- | --- | --- |
+| `/map [focus]` | all | Drawn battle-map (PNG) with a legend |
+| `/map text [focus]` | all | The same as a text grid |
+
 ## Project structure
 
 ```text

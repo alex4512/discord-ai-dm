@@ -5,6 +5,8 @@ import { arrivalImage, requestedImage } from '../../services/imageService.js';
 import { announceXp } from '../xpAnnounce.js';
 import { isAllowedMessage, isDmMentioned, stripDmMention } from '../access.js';
 import { reply, sendImage } from '../reply.js';
+import { sceneMap } from '../../services/mapService.js';
+import { renderLegendText, renderPng, renderTextMap } from '../../services/mapRender.js';
 import { handleCheckpointCommand, parseCheckpointCommand } from '../commands/checkpointCommand.js';
 import { handleWorldCommand } from '../commands/registryCommand.js';
 
@@ -17,6 +19,10 @@ const busyGuilds = new Set();
 const paintingGuilds = new Set();
 
 const IMAGE_COMMAND = /^\/image(?:\s+([\s\S]+))?$/i;
+const MAP_COMMAND = /^\/map(?:\s+([\s\S]+))?$/i;
+
+// Maps run after the lock too (no campaign state), one at a time per guild.
+const sketchingGuilds = new Set();
 
 /**
  * Handles one mention while the guild lock is held. May return a follow-up
@@ -45,6 +51,26 @@ async function handleRequest(message, prompt) {
 
   if (await handleWorldCommand(message, prompt, player)) {
     return null;
+  }
+
+  const mapMatch = prompt.trim().match(MAP_COMMAND);
+
+  if (mapMatch) {
+    // Sketch map (D-018): `/map [focus]` = drawn PNG, `/map text [focus]` = grid.
+    const args = mapMatch[1]?.trim() || '';
+    const asText = /^text\b/i.test(args);
+    const focus = asText ? args.replace(/^text\b\s*/i, '') : args;
+    await reply(message, '*The DM sketches the scene...*');
+    return { kind: 'map', task: async () => {
+      const map = await sceneMap({ guildId, channelId: message.channel.id, request: focus });
+      if (asText) {
+        await message.channel.send({ content: renderTextMap(map), allowedMentions: { parse: [] } });
+      } else {
+        await sendImage(message.channel, renderPng(map), 'map.png');
+        const legend = renderLegendText(map);
+        if (legend) await message.channel.send({ content: legend, allowedMentions: { parse: [] } });
+      }
+    } };
   }
 
   const imageMatch = prompt.trim().match(IMAGE_COMMAND);
@@ -106,14 +132,20 @@ async function handleRequest(message, prompt) {
   } };
 }
 
-async function runImageTask(message, task) {
+/**
+ * Runs a follow-up outside the request lock, one at a time per guild per
+ * kind. Images skip quietly when busy; maps say so. Failures never break
+ * the turn that triggered them.
+ */
+async function runFollowUpTask(message, task, { locks, label, busyText = null, failText = null }) {
   const guildId = message.guild.id;
 
-  if (paintingGuilds.has(guildId)) {
-    return; // another image is being painted for this guild; skip quietly
+  if (locks.has(guildId)) {
+    if (busyText) await reply(message, busyText).catch(() => {});
+    return;
   }
 
-  paintingGuilds.add(guildId);
+  locks.add(guildId);
   try {
     await message.channel.sendTyping().catch(() => {});
     await task();
@@ -121,10 +153,11 @@ async function runImageTask(message, task) {
     if (error instanceof UserFacingError) {
       await reply(message, error.message).catch(() => {});
     } else {
-      console.error('Image error:', error);
+      console.error(`${label} error:`, error);
+      if (failText) await reply(message, failText).catch(() => {});
     }
   } finally {
-    paintingGuilds.delete(guildId);
+    locks.delete(guildId);
   }
 }
 
@@ -169,7 +202,17 @@ export async function onMessageCreate(message) {
     busyGuilds.delete(guildId);
   }
 
-  if (followUp?.kind === 'image') await runImageTask(message, followUp.task);
+  if (followUp?.kind === 'image') {
+    await runFollowUpTask(message, followUp.task, { locks: paintingGuilds, label: 'Image' });
+  }
+  if (followUp?.kind === 'map') {
+    await runFollowUpTask(message, followUp.task, {
+      locks: sketchingGuilds,
+      label: 'Map',
+      busyText: 'A map is already being sketched. Try again in a moment.',
+      failText: 'Could not sketch the map. Check the server logs.'
+    });
+  }
   // The save task handles its own errors and lock (checkpointCommand.js).
   if (followUp?.kind === 'save') await followUp.task();
 }

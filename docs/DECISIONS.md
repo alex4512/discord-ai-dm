@@ -553,3 +553,20 @@ reused.
 - **Privacy preserved:** Kraavok-only secrets 8 → 8; Looming-only secrets 2 → 1 (two merged, same known_by); no entry moved to a wider known_by.
 - **Prompt per reply:** main 17k → 9k tokens; Kraavok's channel 25k → 13k; Looming's channel 23k → 11k. The NPC block went from about 9–11k chars to about 2k (only the NPCs in the scene).
 - **Latency:** a short reply went from 5.2 s to 4.8 s. The gain per reply is modest because the fixed model overhead dominates. The main effect is that prompts **stop growing**, so replies no longer slow down as the campaign goes on. The remaining levers (narration length, monster-dice rounds, model choice) were not taken.
+
+## D-018: Scene maps drawn by code
+
+**Date:** 2026-11-09 · **Status:** accepted (user: text grid as an option, plus a drawn map) · **Code:** `src/ai/mapSchema.js`, `MAP_INSTRUCTIONS` in `src/ai/prompts.js`, `src/services/mapService.js`, `src/services/mapRender.js` · **Dependency:** `@resvg/resvg-js` 2.6.2 (SVG → PNG, prebuilt binaries)
+
+**Context.** `/image` (D-008) is good for setting a scene but can't show who stands where. An image model doesn't keep positions, distances or battle order. A simple sketch does.
+
+**Decision.**
+- **`/map [focus]`** posts a drawn battle-map (PNG) with a text legend. **`/map text [focus]`** posts the same map as a monospace grid in a code block. On request only; never automatic.
+- **Positions as data.** One structured model call (`scene_map`) returns a grid (4–24 squares a side, 1 square = 5 ft), terrain rectangles (wall, door, water, difficult, cover, tree, fire, pit, stairs, other) with short labels, and tokens (1–2 character id, name, party/ally/enemy/neutral, square). The code clamps sizes, drops out-of-range or overlapping tokens, and makes ids unique.
+- **Drawn by code.** The PNG has coloured circles by side (party green, ally blue, enemy red, neutral grey), grid coordinates A… and 1…, and labelled terrain. The text grid uses symbols `# + ~ ^ o T * O = ?`. Both include a legend that names the labelled features.
+- **Audience-safe input.** The map call gets only the shared checkpoint's location, scene and party, plus that channel's own recent messages on the active timeline (up to 8,000 chars). Private channels never see each other. In #dm-testing (nothing stored) it gets the checkpoint and the request.
+- **It doesn't touch campaign state.** It runs after the request lock, one map at a time per server. It isn't stored in history and has no daily cap (it's a cheap text call).
+
+**Checked (2026-11-09).** Rendering tests: clamping, unknown kinds dropped, token de-duplication, grid rows, PNG output. Real model on a synthetic courtyard fight: walls, door, well, cover and 3 skeletons placed as narrated. A read-only map of the live #main-adventure scene placed the party in the rear work area and muddy yard.
+
+**Deferred in the same discussion:** graceful restart (drain in-flight work, `/restart`, catch-up of missed mentions). The user called it a luxury for now; it is noted in the checklist.

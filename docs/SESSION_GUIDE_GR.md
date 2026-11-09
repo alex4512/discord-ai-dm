@@ -26,6 +26,7 @@
 | `@Dungeon Master /location list` | Τόποι που ξέρεις |
 | `@Dungeon Master /chronicle` | Γεγονότα που ξέρεις |
 | `@Dungeon Master /image <τι να δείξει>` | Εικόνα της σκηνής (ημερήσιο όριο) |
+| `@Dungeon Master /map` | Χάρτης-σκίτσο της σκηνής: ποιος είναι πού (`/map text` για κείμενο) |
 | `@Dungeon Master /xp` | Τα XP και το level σου |
 | `@Dungeon Master /xp 3 goblin CR 1/4 \| Looming Shade` | Δίνει XP με το χέρι, αν ο DM το ξέχασε |
 
