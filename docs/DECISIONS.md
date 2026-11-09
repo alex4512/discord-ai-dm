@@ -310,3 +310,18 @@ Kraavok's facts only, without revealing the author note.
 known. A direct probe in that channel could draw out a spoiler, but only to
 a player whose character knows that NPC. Watch for it, and roll back if it
 matters.
+
+**Gameplay consequence (accepted by the user, 2026-11-09, option A).** NPCs
+the shared group hasn't met don't exist for `#main-adventure`:
+
+- `/npc list` there is empty until the group meets someone in shared play.
+- If an NPC first appears in a shared scene (e.g. Kraavok and Looming meet
+  Voss together), the DM doesn't know him there and improvises. The next
+  save records what happened, tagged for both characters, and from then on
+  the NPC, with author notes, is part of the main channel's prompts.
+- A player can bring their character's knowledge in by saying it in
+  character, which makes it shared.
+
+Alternatives considered and deferred: (B) show unmet NPCs' public face
+(role, appearance, personality) in shared channels; (C) per-NPC memory, so an
+NPC can bring up past events with a character in-world.

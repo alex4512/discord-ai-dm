@@ -92,6 +92,7 @@
 - [x] Persist NPC state changes after significant events — NPC update call at each save
 - [ ] Maintain location and world-event records
 - [ ] Track unresolved mysteries, objectives, and consequences
+- [ ] NPC own memory, so NPCs can raise past events with a character in shared scenes (D-007 option C, deferred)
 - [ ] Validate continuity between main and private scenes
 
 ## 6. Reliability, Security & Operations
