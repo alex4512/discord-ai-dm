@@ -124,6 +124,12 @@
 - [ ] Integration tests for private-channel isolation and knowledge leaks
 - ⚠️ Graceful shutdown, reconnect behavior, and recovery tests — graceful shutdown done; recovery procedures in `docs/OPERATIONS.md`
 - [ ] Concurrency testing around drafts and incoming messages
+- [ ] **Multiple bot instances (idea, not urgent; noted 2026-11-09).** Today the bot assumes **one** running instance:
+  - **Duplicate handling.** Two instances logged in with the same token both receive every Discord message, so both would answer.
+  - **In-process locks.** The request lock, the save lock and the image lock (`busyGuilds`, `savingGuilds`, `paintingGuilds`) live in process memory, so they don't protect across instances.
+  - **Message ordering.** `messages.seq` is assigned when a row is inserted, not in Discord's order. With concurrent writers, a slower turn can get a later seq than a newer message, and turns could interleave on the same campaign state.
+  - **Possible approaches:** one active instance via a Postgres advisory-lock leader (others on standby); per-guild locks in Postgres instead of memory; a per-guild work queue in the database; ordering by Discord snowflake (creation time) as a tie-breaker.
+  - **Until then:** run exactly one instance.
 
 ## 7. Player Onboarding — NEW
 
@@ -201,7 +207,7 @@ In order, each agreed as a design before building:
    - **Automatic changes.** Should the DM apply sheet changes automatically, with correction commands? Recommended: yes.
 2. **Resources, inventory and rule checks** on top of the sheets: Rage, spell slots, items, gold.
 3. **Player onboarding** (Milestone 6). Add a player without config, SQL or hand-written scene setups.
-4. **Hardening** (Milestone 5). Always-on hosting, scheduled backups, cost tracking and automated tests.
+4. **Hardening** (Milestone 5). Always-on hosting, scheduled backups, cost tracking and automated tests. Later: safe multi-instance operation, including message ordering (see section 6).
 
 Smaller open items: verify in live play that the watchtower meeting reached the shared record; the Looming-only clue test; NPC memory (D-007 option C); a LICENSE choice.
 
