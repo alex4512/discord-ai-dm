@@ -239,7 +239,7 @@ world, and the shared checkpoint picks them up once they're perceived in
 
 ## D-007: NPCs as a versioned checkpoint partition, filtered per audience
 
-**Date:** 2026-11-09 · **Status:** accepted · **Migration:** `0004_npc_partition.sql` · **Code:** `src/services/npcService.js`, `npcRegistry.js`, `audience.js`
+**Date:** 2026-11-09 · **Status:** accepted, **revised same day** (see *Revision*) · **Migration:** `0004_npc_partition.sql` · **Code:** `src/services/npcService.js`, `npcRegistry.js`, `audience.js`
 
 **Context.** The `campaign_npcs` table was empty, unversioned (a rollback
 wouldn't restore NPC state) and went into every prompt whole, including
@@ -279,3 +279,34 @@ notes, and the DM settles them in play, recorded at the next save.
 **The repo is public.** NPC seed files hold canon and DM secrets, so they live
 in `data/*.local.json` (gitignored). Never put NPC secrets in docs, commit
 messages or tracked files.
+
+### Revision (2026-11-09): NPCs exist for an audience only once they know them
+
+**What happened.** In a pre-release check (real call, live prompt, nothing
+posted), "What do we know about Voss?" asked in `#main-adventure` drew the
+DM to paraphrase an author note ("connected in some way with …"). The
+"DM-only" label didn't hold, the same pattern as D-004. Separately, a
+Discord check showed the DM describing unknown NPCs as "just a name", which
+was unhelpful.
+
+**Change.** In a player audience, an NPC (and its author notes) is present
+only if **every reader knows something** about them: a status, location or
+fact with all readers in `known_by`. Today that means `#main-adventure` and
+Looming Shade's channel see no NPCs, and `#kraavok-private` sees the NPCs
+Kraavok knows. Once characters learn about an NPC in play, the next save
+tags it, and the NPC (with author notes) joins that audience's prompt.
+
+**Shared-channel answers.** The shared-channel description now tells the DM:
+when something hasn't come up in shared play, say so, and point the player
+to their private channel or to sharing it in character. Never describe it as
+unknown or empty, and never deny what a character might know privately.
+
+**Verified (real calls, live prompts):** `#main-adventure` answers
+"hasn't come up in shared play…" for Voss and Edric with no leak. In
+`#kraavok-private`, a direct "Is Voss working with anyone?" answered from
+Kraavok's facts only, without revealing the author note.
+
+**Remaining risk.** Author notes still reach prompts where their NPC is
+known. A direct probe in that channel could draw out a spoiler, but only to
+a player whose character knows that NPC. Watch for it, and roll back if it
+matters.

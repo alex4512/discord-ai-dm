@@ -47,7 +47,7 @@
 - ⚠️ Robust transactional consistency across multiple bot instances — `messages.seq` high-water marks and advisory locks; the busy guard is still in-process only
 - [ ] Explicit checkpoint editing workflow (beyond regenerate / cancel / confirm)
 
-**Known limitation:** DM-authored NPC `author_notes` reach every DM reply prompt labelled DM-only (spoiler risk, not a cross-player leak). Everything learned in play is filtered per audience in code (D-004, D-007).
+**Known limitation:** DM-authored NPC `author_notes` reach the prompts of channels whose characters know that NPC (spoiler risk only, D-007 revision). Everything learned in play is filtered per audience in code (D-004, D-007).
 
 ## 3. Multiplayer Synchronization & Character Knowledge — NEXT PRIORITY
 

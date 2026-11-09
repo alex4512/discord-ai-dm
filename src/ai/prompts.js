@@ -212,7 +212,14 @@ export function toCharacterSummary(player) {
 }
 
 const AUDIENCE_DESCRIPTIONS = {
-  shared: 'Shared channel: every player reads your reply.',
+  shared: `Shared channel: every player reads your reply.
+The asking player's character may know more privately than you see here.
+If asked about a person, place or thing not established in shared play,
+do not describe it as unknown or empty. Say it hasn't come up in shared
+play yet, and point the player to their private channel or to sharing it
+in character. Example:
+"(OOC) Orren hasn't come up in shared play yet. If Kraavok knows him, ask
+me in your private channel, or tell the others in character."`,
   character: name => `Private channel: only ${name}'s player reads your reply.`,
   dm: 'DM testing channel: only the Dungeon Master reads your reply.'
 };

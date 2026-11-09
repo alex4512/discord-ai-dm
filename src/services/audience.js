@@ -125,21 +125,26 @@ export function npcsFor(npcs, readers, characterNames = [], { includeAuthorNotes
       : '';
   const ifKnown = tagged => (knownByAll(tagged, wanted) ? tagged.value : null);
 
+  const views = Object.entries(npcs).map(([key, npc]) => {
+    const view = {
+      name: npc.name || key,
+      role: perceivable(npc.role),
+      appearance: perceivable(npc.appearance),
+      personality: perceivable(npc.personality),
+      status: ifKnown(npc.status),
+      location: ifKnown(npc.location),
+      facts: (npc.facts || [])
+        .filter(fact => knownByAll(fact, wanted))
+        .map(fact => fact.fact)
+    };
+    if (includeAuthorNotes) view.author_notes = npc.author_notes || [];
+    return [key, view];
+  });
+
+  // D-007 revision: an NPC is only part of a player audience's world once
+  // every reader knows something about them (status, location or a fact).
+  // Unknown NPCs, and their author notes, are left out entirely.
   return Object.fromEntries(
-    Object.entries(npcs).map(([key, npc]) => {
-      const view = {
-        name: npc.name || key,
-        role: perceivable(npc.role),
-        appearance: perceivable(npc.appearance),
-        personality: perceivable(npc.personality),
-        status: ifKnown(npc.status),
-        location: ifKnown(npc.location),
-        facts: (npc.facts || [])
-          .filter(fact => knownByAll(fact, wanted))
-          .map(fact => fact.fact)
-      };
-      if (includeAuthorNotes) view.author_notes = npc.author_notes || [];
-      return [key, view];
-    })
+    views.filter(([, view]) => view.status || view.location || view.facts.length)
   );
 }
