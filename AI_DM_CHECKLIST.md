@@ -73,14 +73,14 @@
 
 - [x] D&D 5e (2014 RAW) specified in the DM instructions
 - [x] Player agency: DM does not decide PC actions or dialogue
-- [x] DM instructed not to invent dice results
+- [x] DM instructed not to invent dice results; monster dice come from code (D-013)
 - [ ] Import and persist authoritative character sheets for every PC (our sheets are authoritative; Avrae is an input only)
 - [ ] Track current/max HP, temporary HP, hit dice, and exhaustion
 - [ ] Track Rage, spell slots, class features, and limited-use resources
 - [ ] Track inventory, equipment, consumables, and currency
 - [x] XP awards: the DM tags resolved encounters, code computes XP from the CR table and posts the Avrae command; `/xp` by hand (D-012). Totals kept in Avrae.
 - [ ] Track conditions, rests, and level progression
-- [ ] Decide who rolls for monsters and NPCs (the DM currently asks the players to roll them in Avrae)
+- [x] Monster and NPC dice rolled by the bot: the DM calls a `roll_dice` tool, code rolls with a crypto RNG, every roll is shown above the narration (D-013). Players roll their own in Avrae.
 - [x] ~~Parse Avrae roll results automatically~~ Dropped (user decision): players roll in Avrae and tell the DM the result; that keeps their intent and avoids noise
 - [ ] Validate mechanical outcomes against character stats and rules
 - [ ] Optional character-sheet export

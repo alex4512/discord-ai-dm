@@ -10,6 +10,7 @@ import {
 import { config } from '../config.js';
 import { getCampaignLegacyCheckpoint } from './campaignService.js';
 import { extractXpTags, xpHistoryNote } from './xp.js';
+import { formatRoll } from './dice.js';
 import {
   audienceForChannel,
   characterKnowledgeFor,
@@ -127,7 +128,9 @@ export async function playTurn({
     // XP tags first, so a reply that is only tags still gets the scene fallback.
     const xp = extractXpTags(raw.text, characterNames);
     const parsed = extractSceneTag(xp.text);
-    reply = { ...raw, text: parsed.text };
+    // Monster/NPC dice are shown above the narration and kept in history (D-013).
+    const rollLines = (raw.rolls || []).map(formatRoll);
+    reply = { ...raw, text: [rollLines.join('\n'), parsed.text].filter(Boolean).join('\n\n') };
     scene = parsed.scene;
     xpAwards = xp.awards;
   } catch (error) {

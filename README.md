@@ -64,6 +64,11 @@ splits it evenly and posts e.g. "+75 each … Avrae: `!cc XP +75`". Totals live
 in Avrae (one-time setup per character: `!cc create XP -min 0`); our bot can't
 command Avrae, which ignores bots.
 
+**Dice (D-013).** Players roll their own characters' dice in Avrae and tell
+the DM. The DM rolls for monsters and NPCs through a `roll_dice` tool. The
+bot rolls real dice and shows each roll above the narration, e.g.
+"🎲 Goblin 1 scimitar attack vs Kraavok: 1d20 [18] + 4 = **22**".
+
 ### Scene images
 
 When the scene moves somewhere new for the first time, the DM posts one

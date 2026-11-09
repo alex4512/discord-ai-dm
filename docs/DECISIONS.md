@@ -461,3 +461,18 @@ reused.
 - Not stored as totals in our database, so a rollback doesn't change Avrae. Re-sync by hand.
 
 **Checked (2026-11-09, synthetic scene with placeholder data).** The tag was emitted in 5 of 5 runs once the rule was marked mandatory (1 of 2 before), and in 0 of 3 mid-fight runs (no false awards).
+
+## D-013: The bot rolls monster and NPC dice
+
+**Date:** 2026-11-09 · **Status:** accepted (user decision) · **Code:** `src/services/dice.js`, `roll_dice` tool in `src/ai/dungeonMaster.js`, DM rules in `src/ai/prompts.js`
+
+**Context.** The DM must not invent dice. Players roll their own characters in Avrae and report results (D-012). Without another source, the DM asked the players to roll the monsters' attacks in Avrae too. The user prefers the bot to roll them.
+
+**Decision.**
+- The DM model gets one tool, `roll_dice({rolls: [{label, dice}]})`, for monsters, NPCs and the environment (attacks, damage, their saves, checks, initiative), using Monster Manual (2014) stats.
+- Dice are rolled in code with `crypto.randomInt`, never by the model. Expressions: `1d20+4`, `2d6+2`, `2d20kh1+4` (advantage), `2d20kl1` (disadvantage), sums of terms. Up to 100 dice of up to 1000 sides per term.
+- The model gets the results, then narrates. Up to 3 tool rounds, then it must answer.
+- **Transparency:** every roll is shown above the narration, e.g. "🎲 Goblin 1 scimitar attack vs Kraavok: 1d20 [18] + 4 = **22**". The lines are stored with the reply, so later turns and saves see them.
+- Player characters' dice are never rolled by the bot; the DM asks the player for the roll and waits. Without character sheets, the DM asks a player for their AC if it doesn't know it.
+
+**Checked (2026-11-09).** Dice unit tests: ranges, keep-highest/lowest, invalid input, and the distribution of 20,000 d20 rolls. On a synthetic goblin ambush (3 real runs) the DM rolled attack and damage for each goblin, compared them with AC 15 correctly and did not ask the player to roll for monsters.
