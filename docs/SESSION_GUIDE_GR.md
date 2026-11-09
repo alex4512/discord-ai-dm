@@ -71,7 +71,7 @@
    @Dungeon Master /checkpoint save
    ```
 
-   ✅ Στο κοινό κομμάτι δεν φαίνεται **τίποτα** από όσα είπε ή έκανε ο George.
+   ✅ Απαντά με ένα σύντομο «Checkpoint draft ready…». Το πλήρες draft το βλέπεις στο βήμα 9.
    ⚠️ Αν δεις «New campaign messages arrived…», κάποιος έγραψε στο μεταξύ. Ξαναστείλε το save.
 
 9. **#dm-testing:**
@@ -80,6 +80,7 @@
    @Dungeon Master /checkpoint draft
    ```
 
+   ✅ Στο κοινό κομμάτι (shared checkpoint) δεν φαίνεται **τίποτα** από όσα είπε ή έκανε ο George.
    ✅ Υπάρχει ενότητα **Looming Shade: private knowledge** με τα στοιχεία του.
    ✅ Στα DM notes, τα δικά του στοιχεία έχουν `known_by: ["Looming Shade"]`.
 

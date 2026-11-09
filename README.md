@@ -41,7 +41,7 @@ knowledge** (that character's private channel), and **DM notes**
 | `/checkpoint show` | all | Show the active checkpoint |
 | `/checkpoint draft` | all | Show the pending draft |
 | `/checkpoint versions` | main, testing | List the last 20 versions |
-| `/checkpoint save` | main | Draft a new checkpoint from all channels since the last boundary |
+| `/checkpoint save` | main | Draft a new checkpoint from all channels since the last boundary (short reply; review with `/checkpoint draft`) |
 | `/checkpoint confirm` | main | Promote your draft to the active checkpoint |
 | `/checkpoint cancel` | main | Discard your draft |
 | `/checkpoint rollback <n>` | main | Restore version `n` (all parts, including NPCs) on a new timeline |

@@ -76,19 +76,20 @@ const actions = {
       .join('\n');
   },
 
-  async save({ guildId, userId, audience }) {
+  async save({ guildId, userId }) {
     const draft = await createCheckpointDraft({ guildId, authorId: userId });
 
     const updated = draft.updatedCharacters.length
       ? draft.updatedCharacters.join(', ')
       : 'none';
 
+    // Short on purpose: this posts in the game channel. The full draft is
+    // one `/checkpoint draft` away (best read in #dm-testing).
     return (
-      `Checkpoint draft based on v${draft.basedOnVersion}\n` +
-      '**NOT YET SAVED**\n\n' +
-      renderSnapshot(draft, audience) +
-      `\n\nCharacter knowledge records generated: ${updated}.` +
-      '\nUse /checkpoint confirm or /checkpoint cancel.'
+      `Checkpoint draft ready (based on v${draft.basedOnVersion}), ` +
+      `**not yet saved**. Knowledge updated for: ${updated}.\n` +
+      '`/checkpoint confirm` to save, `/checkpoint cancel` to discard, ' +
+      '`/checkpoint draft` to review it.'
     );
   },
 
