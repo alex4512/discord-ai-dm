@@ -91,7 +91,7 @@
 - [x] Protect NPC secrets and DM-only knowledge from player-facing output — author notes never in player output; still in DM prompts (D-007 trade-off)
 - [x] Persist NPC state changes after significant events — NPC update call at each save
 - [ ] Maintain location and world-event records
-- [ ] Track unresolved mysteries, objectives, and consequences
+- [x] Track unresolved mysteries, objectives, and consequences — shared checkpoint (`objectives`, `pending_decisions`, `unresolved_mysteries`), DM notes (`open_threads`, `world_truth`, `observable_world_state`), character knowledge (`private_objectives`)
 - [ ] NPC own memory, so NPCs can raise past events with a character in shared scenes (D-007 option C, deferred)
 - [ ] Validate continuity between main and private scenes
 
@@ -126,7 +126,7 @@
 - [x] Incorporate private-channel events into DM world awareness (D-004, D-006)
 - [x] Build spoiler-safe prompt and checkpoint views (D-002, D-004)
 - [x] Implement safe private-history checkpoint boundaries
-- [ ] Run end-to-end secrecy and information-sharing tests
+- ⚠️ Run end-to-end secrecy and information-sharing tests — secrecy passed in Discord for Kraavok (token, Orren, Voss, rollback); Looming's side and in-game sharing pending the live test
 
 ### Milestone 3 — Character State & Avrae
 
