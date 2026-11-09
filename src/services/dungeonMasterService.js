@@ -9,7 +9,8 @@ import {
 } from '../ai/prompts.js';
 import { config } from '../config.js';
 import { getCampaignLegacyCheckpoint } from './campaignService.js';
-import { extractXpTags, xpHistoryNote } from './xp.js';
+import { awardEntries, extractXpTags, xpHistoryNote } from './xp.js';
+import { currentXp, recordAwards, withXpLevels } from './progressService.js';
 import { formatRoll } from './dice.js';
 import {
   audienceForChannel,
@@ -56,7 +57,7 @@ export async function playTurn({
   const testMode = audience.kind === 'dm';
   const state = await getState(guildId);
 
-  const [history, sharedHistory, legacyCheckpoint, players] = await Promise.all([
+  const [history, sharedHistory, legacyCheckpoint, registered] = await Promise.all([
     testMode
       ? []
       : getHistory({
@@ -79,6 +80,11 @@ export async function playTurn({
     state.version === 0 ? getCampaignLegacyCheckpoint(guildId) : null,
     getPlayers(guildId)
   ]);
+
+  // Levels come from XP kept by the bot (D-014), not the registration row.
+  const xpByName = await currentXp(guildId, state, registered);
+  const players = withXpLevels(registered, xpByName);
+  player = players.find(p => p.character_name === player.character_name) || player;
 
   const readers = readersOf(audience, players);
   const characterNames = players.map(p => p.character_name);
@@ -150,10 +156,26 @@ export async function playTurn({
     });
   }
 
+  // Record awards in the XP ledger (D-014); test mode only shows them.
+  const xpResults = [];
+  for (const award of xpAwards) {
+    xpResults.push({
+      award,
+      results: testMode
+        ? []
+        : await recordAwards({
+            guildId,
+            channelId,
+            userId: authorId,
+            entries: awardEntries(award)
+          })
+    });
+  }
+
   return {
     text: reply.text,
     scene,
-    xpAwards,
+    xpResults,
     audience,
     version: state.version,
     timelineId: state.timeline_id,

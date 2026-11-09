@@ -56,16 +56,19 @@ appears there once they've learned something about it.
 | `/npc show <name>`, `/location show <name>` | all | One entry as this channel may see it (`#dm-testing`: everything) |
 | `/npc note <name>: <text>`, `/location note <name>: <text>` | testing | Add DM-authored truth (creates the entry if new) as a new version |
 | `/chronicle` | all | The last 20 events this channel may know |
-| `/xp <count> <creature> CR <cr>; ... \| <names>` | all | Compute an XP award by hand and show the Avrae command (D-012) |
+| `/xp` | all | Your XP and level (`#dm-testing`: everyone) |
+| `/xp <count> <creature> CR <cr>; ... \| <names>` | all | Award XP by hand, same syntax as the DM's tag |
+| `/xp set <character> <total>` | testing | Set a character's XP total |
 
-**Experience (D-012).** When a fight ends in the characters' favour, the DM
-adds a hidden XP tag. The bot computes the award from the 2014 CR table,
-splits it evenly and posts e.g. "+75 each … Avrae: `!cc XP +75`". Totals live
-in Avrae (one-time setup per character: `!cc create XP -min 0`); our bot can't
-command Avrae, which ignores bots.
+**Experience (D-012, D-014).** When a fight ends in the characters' favour,
+the DM adds a hidden XP tag. The bot computes the award from the 2014 CR
+table, splits it evenly, records it and posts e.g. "+75 each". Totals and
+levels are kept by the bot, versioned with the story: a rollback removes
+later XP, an undo keeps it. Totals show only in your private channel
+(`/xp`) and `#dm-testing`; level-ups are announced in your private channel.
 
-**Dice (D-013).** Players roll their own characters' dice in Avrae and tell
-the DM. The DM rolls for monsters and NPCs through a `roll_dice` tool. The
+**Dice (D-013).** Players roll their own characters' dice however they like
+(Avrae, physical dice, any app) and tell the DM in any words. The DM rolls for monsters and NPCs through a `roll_dice` tool. The
 bot rolls real dice and shows each roll above the narration, e.g.
 "🎲 Goblin 1 scimitar attack vs Kraavok: 1d20 [18] + 4 = **22**".
 
@@ -160,8 +163,8 @@ Looming Shade.
 
 ## Caveats
 
-- No character sheets and no Avrae result ingestion yet. Players report
-  rolls to the DM.
+- No character sheets yet (XP and level are tracked; HP, conditions and
+  resources not yet). Players report their rolls to the DM.
 - Adding a player is manual: `.env`, a SQL row, the Discord channel and
   code that names the characters. See *Player Onboarding* in
   [`AI_DM_CHECKLIST.md`](AI_DM_CHECKLIST.md), which also lists the next

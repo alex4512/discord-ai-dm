@@ -460,6 +460,8 @@ reused.
 - **`/xp <same syntax>`** awards by hand when the DM missed it. In campaign channels the note is stored in history.
 - Not stored as totals in our database, so a rollback doesn't change Avrae. Re-sync by hand.
 
+*Superseded in part by D-014: totals and levels are now kept by the bot, and the Avrae command is no longer shown.*
+
 **Checked (2026-11-09, synthetic scene with placeholder data).** The tag was emitted in 5 of 5 runs once the rule was marked mandatory (1 of 2 before), and in 0 of 3 mid-fight runs (no false awards).
 
 ## D-013: The bot rolls monster and NPC dice
@@ -476,3 +478,20 @@ reused.
 - Player characters' dice are never rolled by the bot; the DM asks the player for the roll and waits. Without character sheets, the DM asks a player for their AC if it doesn't know it.
 
 **Checked (2026-11-09).** Dice unit tests: ranges, keep-highest/lowest, invalid input, and the distribution of 20,000 d20 rolls. On a synthetic goblin ambush (3 real runs) the DM rolled attack and damage for each goblin, compared them with AC 15 correctly and did not ask the player to roll for monsters.
+
+## D-014: XP and level kept by the bot, versioned with the story
+
+**Date:** 2026-11-09 · **Status:** accepted (user decision) · **Migration:** `0007_xp_progress.sql` · **Code:** `src/services/progressService.js`, `src/db/repositories/xpRepository.js`, `src/discord/xpAnnounce.js`
+
+**Context.** With D-012 the totals lived in Avrae. Players had to run `!cc` after every award, the totals ignored rollbacks, and the bot didn't know anyone's level. The user found this fragile and noted that Avrae adds little: players announce their rolls either way. Avrae becomes optional everywhere.
+
+**Decision.**
+- **Ledger + partition.** Each award is a row in `xp_awards`. Its `seq` comes from the **messages sequence**, so the checkpoint boundary covers awards and messages alike (the high-water mark is the maximum over both). A save folds awards in (previous boundary, new boundary] into a new snapshot partition, `progress` (`{ "<character>": { "xp": n } }`). Current XP = `progress` + awards on the active timeline after the boundary.
+- **Rollback and undo work for free.** A rollback restores the target's `progress` on a new timeline, so later awards are left behind. An undo restores the previous `progress` *and* boundary on the same timeline, so the awards count again and no XP is lost.
+- **Defaults.** A character with no saved XP starts at the minimum for their registered level (Kraavok L4 = 2,700, Looming Shade L1 = 0). Every save writes all registered characters.
+- **Levels come from XP** (PHB 2014 table) everywhere the DM sees a level: prompts and save summaries. `campaign_players.character_level` is only the starting point.
+- **Visibility (continues D-010).** Award lines (`+75 each`) appear where the award happened. Totals appear only in the owner's private channel and `#dm-testing`. Level-ups are announced in the levelling character's private channel. Test mode shows awards without recording them.
+- **Commands.** `/xp` shows your own total (`#dm-testing`: everyone). `/xp <award>` records by hand. `/xp set <character> <total>` (`#dm-testing` only) records the difference as an award, so it is versioned too.
+- **Dice wording.** Players roll however they like (Avrae, physical dice, any app) and report in any words. No format is required.
+
+**Checked (2026-11-09).** A rolled-back test on the live DB covered: the defaults, awards, level-up detection, save folding, an undo after a save with a later award (no XP lost), a rollback (later XP gone), a DM tag inside a turn (recorded; Looming shown as level 2 in his prompt), the visibility of totals per channel, a level-up posted in the private channel, and `/xp`, `/xp set` and its channel restriction. 17/17 passed; 0 rows left behind.

@@ -22,6 +22,7 @@ import { appendChronicle, mergeUpdate } from './registry.js';
 import { toSnapshot } from '../db/partitions.js';
 import { toCharacterSummary } from '../ai/prompts.js';
 import { getCampaignLegacyCheckpoint } from './campaignService.js';
+import { foldProgress, withXpLevels } from './progressService.js';
 
 /** Private channels joined with the registered player who owns each. */
 function getPrivateScopes(players) {
@@ -76,7 +77,7 @@ export async function saveCheckpoint({ guildId, authorId }) {
     untilSeq: boundarySeq
   });
 
-  const [players, legacy, mainHistory, boundaryMessageId] =
+  const [registered, legacy, mainHistory, boundaryMessageId] =
     await Promise.all([
       getPlayers(guildId),
       getCampaignLegacyCheckpoint(guildId),
@@ -88,6 +89,19 @@ export async function saveCheckpoint({ guildId, authorId }) {
         untilSeq: boundarySeq
       })
     ]);
+
+  // XP awards up to the boundary fold into the saved progress (D-014);
+  // levels in the summaries come from it.
+  const progress = await foldProgress({
+    guildId,
+    state,
+    players: registered,
+    untilSeq: boundarySeq
+  });
+  const players = withXpLevels(
+    registered,
+    Object.fromEntries(Object.entries(progress).map(([name, p]) => [name, p.xp]))
+  );
 
   const privateScopes = await Promise.all(
     getPrivateScopes(players).map(async scope => {
@@ -192,7 +206,8 @@ export async function saveCheckpoint({ guildId, authorId }) {
     dm_notes: dmNotes,
     npcs: mergeUpdate(previous.npcs, world.npcs),
     locations: mergeUpdate(previous.locations, world.locations),
-    chronicle: appendChronicle(previous.chronicle, world.events, state.version + 1)
+    chronicle: appendChronicle(previous.chronicle, world.events, state.version + 1),
+    progress
   };
 
   const { version } = await withGuildTransaction(guildId, async db => {

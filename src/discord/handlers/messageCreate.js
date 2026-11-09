@@ -2,7 +2,7 @@ import { UserFacingError } from '../../errors/UserFacingError.js';
 import { getPlayer } from '../../db/repositories/playerRepository.js';
 import { playTurn } from '../../services/dungeonMasterService.js';
 import { arrivalImage, requestedImage } from '../../services/imageService.js';
-import { formatXpAward } from '../../services/xp.js';
+import { announceXp } from '../xpAnnounce.js';
 import { isAllowedMessage, isDmMentioned, stripDmMention } from '../access.js';
 import { reply, sendImage } from '../reply.js';
 import { handleCheckpointCommand, parseCheckpointCommand } from '../commands/checkpointCommand.js';
@@ -75,12 +75,9 @@ async function handleRequest(message, prompt) {
 
   await reply(message, turn.text);
 
-  // XP computed in code from the DM's hidden tag (D-012); totals live in Avrae.
-  for (const award of turn.xpAwards || []) {
-    await message.channel.send({
-      content: formatXpAward(award),
-      allowedMentions: { parse: [] }
-    });
+  // XP from the DM's hidden tag, computed and kept by the bot (D-012, D-014).
+  for (const xp of turn.xpResults || []) {
+    await announceXp(message, { ...xp, testMode: turn.testMode });
   }
 
   console.log(

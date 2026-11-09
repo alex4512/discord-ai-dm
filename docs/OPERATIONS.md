@@ -52,6 +52,7 @@ commit message.
 | `0004_npc_partition` | `npcs` on state, versions, drafts | yes | restore backup, or drop the added columns |
 | `0005_locations_chronicle` | `locations`, `chronicle` on state, versions, drafts | yes | restore backup, or drop the added columns |
 | `0006_scene_images` | new tables `image_generations`, `scene_images`, `scene_arrivals` | yes | drop the three tables |
+| `0007_xp_progress` | `progress` JSONB on state/versions/drafts; new table `xp_awards` (seq from the messages sequence) | yes | drop `xp_awards` and the three `progress` columns |
 
 Commits that add no migration (for example the D-004 prompt change) only
 need a restart. Roll them back with `git checkout <previous-commit>` and a

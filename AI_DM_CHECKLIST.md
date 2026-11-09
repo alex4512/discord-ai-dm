@@ -78,9 +78,9 @@
 - [ ] Track current/max HP, temporary HP, hit dice, and exhaustion
 - [ ] Track Rage, spell slots, class features, and limited-use resources
 - [ ] Track inventory, equipment, consumables, and currency
-- [x] XP awards: the DM tags resolved encounters, code computes XP from the CR table and posts the Avrae command; `/xp` by hand (D-012). Totals kept in Avrae.
+- [x] XP and level kept by the bot: the DM tags resolved encounters, code computes XP from the CR table, records it in a ledger folded into each save; rollback/undo-safe; level-ups announced privately; `/xp`, `/xp set` (D-012, D-014)
 - [ ] Track conditions, rests, and level progression
-- [x] Monster and NPC dice rolled by the bot: the DM calls a `roll_dice` tool, code rolls with a crypto RNG, every roll is shown above the narration (D-013). Players roll their own in Avrae.
+- [x] Monster and NPC dice rolled by the bot: the DM calls a `roll_dice` tool, code rolls with a crypto RNG, every roll is shown above the narration (D-013). Players roll their own however they like (Avrae optional).
 - [x] ~~Parse Avrae roll results automatically~~ Dropped (user decision): players roll in Avrae and tell the DM the result; that keeps their intent and avoids noise
 - [ ] Validate mechanical outcomes against character stats and rules
 - [ ] Optional character-sheet export

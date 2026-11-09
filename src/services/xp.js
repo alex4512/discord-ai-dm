@@ -1,8 +1,7 @@
 /**
  * Experience awards (D-012). The DM marks a resolved encounter with a hidden
  * tag; the code computes XP from the 5e (2014) CR table and splits it
- * evenly. Totals are kept by the players in Avrae (`!cc XP +N`), which our
- * bot cannot command (Avrae ignores bots), so nothing is stored here.
+ * evenly. Totals are kept by the bot (progressService.js, D-014).
  *
  * Tag: [[XP: 4 goblin CR 1/4; 1 bugbear CR 1 | Kraavok, Looming Shade]]
  * A plain amount is a direct award: [[XP: 150 solved the seal | Kraavok]]
@@ -85,14 +84,21 @@ export function extractXpTags(text, characterNames) {
   return { text: clean, awards };
 }
 
-/** The line players see, with the Avrae command to copy. */
+/** The award line players see in the channel (no totals; D-014). */
 export function formatXpAward(award) {
   const what = award.sources.map(s => s.label).join(', ');
   const who = award.participants.join(', ');
-  return (
-    `**XP:** ${what} = ${award.total} XP → **+${award.each} each** (${who}).\n` +
-    `Avrae: \`!cc XP +${award.each}\``
-  );
+  return `**XP:** ${what} = ${award.total} XP → **+${award.each} each** (${who}).`;
+}
+
+/** Award entries for the ledger: one per participant. */
+export function awardEntries(award) {
+  const reason = award.sources.map(s => s.label).join(', ');
+  return award.participants.map(characterName => ({
+    characterName,
+    amount: award.each,
+    reason
+  }));
 }
 
 /** Short plain note appended to the stored DM reply, for the next save. */

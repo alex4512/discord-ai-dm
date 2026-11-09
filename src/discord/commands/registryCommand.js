@@ -5,7 +5,9 @@ import { getPlayers } from '../../db/repositories/playerRepository.js';
 import { audienceForChannel, chronicleFor, readersOf, registryFor } from '../../services/audience.js';
 import { addAuthorNote } from '../../services/worldService.js';
 import { REGISTRY_KINDS, findKey } from '../../services/registry.js';
-import { formatXpAward, parseXpTag, xpHistoryNote } from '../../services/xp.js';
+import { awardEntries, parseXpTag, xpHistoryNote } from '../../services/xp.js';
+import { recordAwards, setXp, xpReport } from '../../services/progressService.js';
+import { announceXp, formatXpStatus } from '../xpAnnounce.js';
 import { storeMessage } from '../../db/repositories/messageRepository.js';
 
 /** Readers + filtered views for the channel a command was sent in. */
@@ -131,15 +133,19 @@ const chronicleCommand = {
 };
 
 const XP_HELP = [
-  'Award XP by hand when the DM missed it (D-012):',
-  '/xp 3 goblin CR 1/4 | Kraavok, Looming Shade',
-  '/xp 100 solved the seal | Kraavok',
-  'Several groups: /xp 4 goblin CR 1/4; 1 bugbear CR 1 | Kraavok, Looming Shade'
+  'XP commands (D-014):',
+  '/xp: your XP and level (#dm-testing: everyone)',
+  '/xp 3 goblin CR 1/4 | Kraavok, Looming Shade: award by hand',
+  '/xp 100 solved the seal | Kraavok: plain amount',
+  '/xp set <character> <total>: set a total (#dm-testing only)'
 ].join('\n');
 
+const XP_SET = /^set\s+(.+?)\s+(\d+)$/i;
+
 /**
- * `/xp <tag body>`: the same computation as the DM's hidden XP tag. In a
- * campaign channel the award is noted in history, so the next save has it.
+ * `/xp`: show totals, set a total (DM), or award by hand with the same
+ * syntax as the DM's hidden tag. Awards are recorded in the XP ledger; in a
+ * campaign channel a note also goes into history for the next save.
  */
 const xpCommand = {
   parse(prompt) {
@@ -148,9 +154,31 @@ const xpCommand = {
   },
 
   async handle(message, body, ctx) {
-    const players = await getPlayers(ctx.guildId);
-    const award = body && parseXpTag(body, players.map(p => p.character_name));
+    const inTest = ctx.channelId === config.channels.test;
 
+    if (!body) {
+      const rows = await xpReport(ctx.guildId, inTest ? null : [ctx.player.character_name]);
+      return reply(message, rows.map(formatXpStatus).join('\n') || XP_HELP);
+    }
+
+    const players = await getPlayers(ctx.guildId);
+    const names = players.map(p => p.character_name);
+    const setMatch = body.match(XP_SET);
+
+    if (setMatch) {
+      if (!inTest) return reply(message, 'Use /xp set in #dm-testing.');
+      const name = names.find(n => n.toLowerCase() === setMatch[1].trim().toLowerCase());
+      const result = name && await setXp({
+        guildId: ctx.guildId,
+        channelId: ctx.channelId,
+        userId: ctx.userId,
+        characterName: name,
+        targetXp: Number(setMatch[2])
+      });
+      return reply(message, result ? formatXpStatus(result) : `Unknown character "${setMatch[1]}".`);
+    }
+
+    const award = parseXpTag(body, names);
     if (!award) return reply(message, XP_HELP);
 
     if (config.campaignChannelIds.includes(ctx.channelId)) {
@@ -168,7 +196,13 @@ const xpCommand = {
       }
     }
 
-    return reply(message, formatXpAward(award));
+    const results = await recordAwards({
+      guildId: ctx.guildId,
+      channelId: ctx.channelId,
+      userId: ctx.userId,
+      entries: awardEntries(award)
+    });
+    return announceXp(message, { award, results });
   }
 };
 

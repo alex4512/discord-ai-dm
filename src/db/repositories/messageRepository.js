@@ -68,12 +68,16 @@ export async function deleteMessage(id) {
   await pool.query('DELETE FROM public.messages WHERE id = $1', [id]);
 }
 
-/** Highest message seq stored for the guild (0 if none): a high-water mark. */
+/**
+ * Highest seq stored for the guild (0 if none): a high-water mark. XP awards
+ * share the messages sequence (D-014), so the mark covers both.
+ */
 export async function getHighWaterSeq(guildId, db = pool) {
   const result = await db.query(`
-    SELECT COALESCE(MAX(seq), 0) AS seq
-    FROM public.messages
-    WHERE guild_id = $1
+    SELECT GREATEST(
+      (SELECT COALESCE(MAX(seq), 0) FROM public.messages WHERE guild_id = $1),
+      (SELECT COALESCE(MAX(seq), 0) FROM public.xp_awards WHERE guild_id = $1)
+    ) AS seq
   `, [guildId]);
 
   return result.rows[0].seq;
