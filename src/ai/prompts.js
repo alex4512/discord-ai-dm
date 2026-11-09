@@ -119,6 +119,15 @@ Track:
 - open_threads: unresolved hooks and pending consequences,
 - continuity_warnings: contradictions between scenes or channels.
 
+Every entry has known_by: the exact names of the player characters
+who know that entry through play (they witnessed it, did it, or were
+told in-world). Use the registered character names exactly.
+- An event from a private channel is known only by that character.
+- An event in the main adventure is known by the characters present.
+- Pure DM background no player character knows: known_by = [].
+When unsure, leave a character out. Entries are shown to a player's
+channel only if that character is listed.
+
 Keep still-valid entries from the previous notes. Update what changed.
 
 Do not invent facts, player decisions, dice results or outcomes

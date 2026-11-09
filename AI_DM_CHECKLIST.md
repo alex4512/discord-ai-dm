@@ -47,7 +47,7 @@
 - ⚠️ Robust transactional consistency across multiple bot instances — `messages.seq` high-water marks and advisory locks; the busy guard is still in-process only
 - [ ] Explicit checkpoint editing workflow (beyond regenerate / cancel / confirm)
 
-**Known limitation:** Non-secret DM notes (`world_truth`, NPC developments) and NPC registry secrets reach every channel's prompt labelled DM-only; keeping them private relies on the model (D-004 trade-off).
+**Known limitation:** NPC registry `secrets` still reach every channel's prompt labelled DM-only (registry is empty today). Everything else is filtered per audience in code (D-004).
 
 ## 3. Multiplayer Synchronization & Character Knowledge — NEXT PRIORITY
 
@@ -56,7 +56,7 @@
 - [x] Define a durable shared-world state versus per-character knowledge model (D-001)
 - [x] Persist discoveries, secrets, and observations per character (`character_knowledge`)
 - [x] Allow the DM to account for events in both private channels — `dm_notes` in every DM prompt, secrets filtered per audience (D-004)
-- ⚠️ Prevent private knowledge from leaking into another player's narration — character knowledge and secrets excluded mechanically; non-secret DM notes rely on the model (D-004)
+- [x] Prevent private knowledge from leaking into another player's narration — character knowledge and every DM-notes entry filtered by `known_by` in code (D-004 revision); NPC registry secrets still prompt-based
 - [ ] Synchronize world-changing private events with shared campaign state
 - [ ] Transfer knowledge between characters only through appropriate in-game events
 - [x] Make checkpoint previews / `show` safe for shared-channel visibility (D-002)

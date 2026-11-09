@@ -30,23 +30,32 @@ export function readersOf(audience, players) {
 
 const normalize = name => String(name).trim().toLowerCase();
 
+function knownByAll(entry, wanted) {
+  if (!entry || typeof entry !== 'object' || !Array.isArray(entry.known_by)) {
+    return false; // untagged or legacy-format entry: fail closed
+  }
+  const knownBy = entry.known_by.map(normalize);
+  return wanted.every(reader => knownBy.includes(reader));
+}
+
 /**
- * DM notes for a set of readers (D-004): a secret is kept only if EVERY
- * reader already knows it. Matching is exact (case-insensitive) and fails
- * closed: a secret whose known_by doesn't name a reader is dropped.
+ * DM notes for a set of readers (D-004): every list entry is kept only if
+ * EVERY reader appears in its known_by. Matching is exact (case-insensitive)
+ * and fails closed: untagged entries, old string-format entries and
+ * entries whose known_by doesn't name a reader are dropped.
+ * `readers === null` (the DM) gets everything.
  */
 export function dmNotesFor(dmNotes, readers) {
   if (!dmNotes || !readers) return dmNotes || null;
 
   const wanted = readers.map(normalize);
 
-  return {
-    ...dmNotes,
-    secrets: (dmNotes.secrets || []).filter(secret => {
-      const knownBy = (secret.known_by || []).map(normalize);
-      return wanted.every(reader => knownBy.includes(reader));
-    })
-  };
+  return Object.fromEntries(
+    Object.entries(dmNotes).map(([field, value]) => [
+      field,
+      Array.isArray(value) ? value.filter(entry => knownByAll(entry, wanted)) : []
+    ])
+  );
 }
 
 /** The character_knowledge entries this audience may see. */

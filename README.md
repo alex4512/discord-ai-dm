@@ -119,8 +119,8 @@ Looming Shade.
 
 - No Avrae result ingestion yet.
 - Each DM reply only gets what its channel's audience may see (D-004).
-  Character knowledge and secrets are filtered in code. Other DM notes and
-  NPC secrets rely on the model not revealing them.
+  Character knowledge and DM notes are filtered in code. Only NPC registry
+  secrets still rely on the model not revealing them.
 - No usage or budget accounting.
 - Treat model output as narrative, not as proof that data isolation has
   been audited.

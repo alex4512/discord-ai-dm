@@ -113,7 +113,7 @@ partition, and can't leak to Looming Shade through the shared checkpoint.
 
 ## D-004: DM reply prompts contain only what the channel's audience may see
 
-**Date:** 2026-11-09 · **Status:** accepted · **Code:** `src/services/audience.js`
+**Date:** 2026-11-09 · **Status:** accepted, **revised same day** (see *Revision* below) · **Code:** `src/services/audience.js`
 
 **Context.** Commit 3 stored character knowledge and DM notes, but DM replies
 ignored them. Private channels also fed the model their entire raw history.
@@ -153,3 +153,31 @@ character's knowledge record (D-001). This assumes private messages before a
 boundary were summarized. That holds for every boundary set since D-001.
 The only pre-D-001 boundary (v1) was abandoned by rollback, and the active
 timeline at the time of this change had no boundary.
+
+### Revision (2026-11-09): every DM-notes entry is filtered in code
+
+**What happened.** In the first Discord test of D-004, Kraavok hid a bone
+token in his private channel. In `#main-adventure` the DM was asked what was
+in Kraavok's boot, and it **answered**. The secret filter had worked, but the
+DM-notes call had also written the event into `world_truth` and
+`continuity_warnings`. Those reached the main prompt labelled *DM ONLY*,
+and the model ignored the label. The accepted trade-off above failed in
+practice. Fixed by rolling back to v4.
+
+**Change.** Every DM-notes list (`world_truth`, `secrets`,
+`npc_developments`, `open_threads`, `continuity_warnings`, `notes`) is now a
+list of `{ note | secret, known_by[] }`. In a player channel, an entry is
+included only if **every** reader is in its `known_by`. Untagged entries,
+old string-format entries (versions saved before this revision) and pure DM
+background (`known_by: []`) are dropped for players and stay visible in
+`#dm-testing`.
+
+**Cost.** In player channels the DM no longer gets cross-channel hints such as
+"the crypt door is open because Kraavok opened it". Shared consequences reach
+other channels once they're established in the main adventure. This keeps
+D-001's principle: privacy is enforced by what the prompt contains, not by
+instructions.
+
+**Still model-dependent.** The NPC registry (with `secrets`) is still in
+every prompt, unchanged from before D-004. It's empty today. Filtering it the
+same way is the next step if NPC secrets get populated.

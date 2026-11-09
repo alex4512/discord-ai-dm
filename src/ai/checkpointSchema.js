@@ -89,28 +89,34 @@ export const characterKnowledgeSchema = {
   ]
 };
 
-/** DM-only notes: world truth across all channels. Never shown to players. */
+/** A DM-notes entry tagged with exactly who in play knows it (D-004). */
+const taggedList = (field = 'note') => ({
+  type: 'array',
+  items: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {
+      [field]: { type: 'string' },
+      known_by: stringList
+    },
+    required: [field, 'known_by']
+  }
+});
+
+/**
+ * DM-only notes: world truth across all channels. Every entry carries
+ * known_by so it can be filtered per audience in code.
+ */
 export const dmNotesSchema = {
   type: 'object',
   additionalProperties: false,
   properties: {
-    world_truth: stringList,
-    secrets: {
-      type: 'array',
-      items: {
-        type: 'object',
-        additionalProperties: false,
-        properties: {
-          secret: { type: 'string' },
-          known_by: stringList
-        },
-        required: ['secret', 'known_by']
-      }
-    },
-    npc_developments: stringList,
-    open_threads: stringList,
-    continuity_warnings: stringList,
-    notes: stringList
+    world_truth: taggedList(),
+    secrets: taggedList('secret'),
+    npc_developments: taggedList(),
+    open_threads: taggedList(),
+    continuity_warnings: taggedList(),
+    notes: taggedList()
   },
   required: [
     'world_truth',
