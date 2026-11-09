@@ -191,16 +191,19 @@ Goal: a new player joins without code or `.env` changes and without SQL. Propose
 
 ## Next Steps
 
+Done on 2026-11-09: direct background saves with undo (D-011); XP and levels kept by the bot, including challenges and milestones (D-012, D-014, D-015); monster dice rolled by the bot (D-013). Avrae roll reading was dropped: players report rolls in any words and Avrae is optional.
+
 In order, each agreed as a design before building:
 
-1. **Character sheets** (Milestone 3). Three open questions:
+1. **Character sheets** (Milestone 3): HP, AC, conditions, exhaustion, rests, using the same ledger + snapshot mechanism as XP (D-014). The DM needs AC for the monster rolls and currently has to ask for it. Three open questions:
    - **Visibility.** Full sheet in the player's private channel, only visible state in `#main-adventure`, everything in `#dm-testing`?
    - **Starting data.** Handover stats, or current values from each player?
    - **Automatic changes.** Should the DM apply sheet changes automatically, with correction commands? Recommended: yes.
-2. **Resources, inventory and rule checks** on top of the sheets.
-3. **Avrae roll reading.** Read Avrae's result messages and attach them to the right character, so players stop retyping results. This doesn't depend on the sheets and could be pulled forward.
-4. **Player onboarding** (Milestone 6). Add a player without config, SQL or hand-written scene setups.
-5. **Hardening** (Milestone 5). Always-on hosting, scheduled backups, cost tracking and automated tests.
+2. **Resources, inventory and rule checks** on top of the sheets: Rage, spell slots, items, gold.
+3. **Player onboarding** (Milestone 6). Add a player without config, SQL or hand-written scene setups.
+4. **Hardening** (Milestone 5). Always-on hosting, scheduled backups, cost tracking and automated tests.
+
+Smaller open items: verify in live play that the watchtower meeting reached the shared record; the Looming-only clue test; NPC memory (D-007 option C); a LICENSE choice.
 
 ---
 
