@@ -42,6 +42,14 @@ async function generateStructured({ name, schema, instructions, context }) {
     max_output_tokens: config.openai.checkpointMaxOutputTokens
   });
 
+  if (result.status === 'incomplete') {
+    const reason = result.incomplete_details?.reason || 'unknown reason';
+    throw new Error(
+      `${name} was cut off (${reason}). ` +
+      'Raise CHECKPOINT_MAX_OUTPUT_TOKENS and save again; nothing was saved.'
+    );
+  }
+
   if (!result.output_text) {
     throw new Error(`OpenAI returned no JSON for ${name}`);
   }

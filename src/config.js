@@ -95,7 +95,8 @@ function loadConfig(env = process.env) {
       apiKey: env.OPENAI_API_KEY,
       model: env.OPENAI_MODEL || 'gpt-4.1-mini',
       maxOutputTokens: parsePositiveInt(env, 'MAX_OUTPUT_TOKENS', 1200),
-      checkpointMaxOutputTokens: 3500
+      // Knowledge records grow over a campaign; 3500 truncated one at ~16k chars.
+      checkpointMaxOutputTokens: parsePositiveInt(env, 'CHECKPOINT_MAX_OUTPUT_TOKENS', 12000)
     }),
 
     // Scene images (D-008). Never generated automatically except once per

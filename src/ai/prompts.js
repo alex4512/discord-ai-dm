@@ -121,6 +121,8 @@ witnessed, was told in-world, or reasonably deduced:
 
 Keep everything from the previous record that is still true.
 Update what changed. Remove nothing without a reason in history.
+Stay concise: merge duplicate or overlapping entries into one, and keep
+each entry to one or two sentences. Never repeat a fact in several lists.
 
 Never include information the character could not know.
 Never record another player character's class, level or game statistics;
