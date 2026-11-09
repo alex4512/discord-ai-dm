@@ -13,6 +13,9 @@ longer used as canon.
 4. `npm run migrate` to create or update the schema (see [Database](#database)).
 5. `npm start` (or `npm run dev` for watch mode).
 
+Upgrading a running campaign, backups and recovery are covered in
+[docs/OPERATIONS.md](docs/OPERATIONS.md). Read it before every upgrade.
+
 ## Usage
 
 Mention the bot (or the DM role) in an allowed channel. Only Discord
@@ -28,16 +31,20 @@ told to retry.
 
 ### Checkpoint commands
 
-Run these in #main-adventure (`show` and `versions` also work in #dm-testing):
+A checkpoint has three parts, each shown only where its audience can
+read it: the **shared world** (every channel), each character's **private
+knowledge** (that character's private channel), and **DM notes**
+(#dm-testing only). See [docs/DECISIONS.md](docs/DECISIONS.md).
 
-| Command | Effect |
-| --- | --- |
-| `/checkpoint show` | Show the active checkpoint |
-| `/checkpoint versions` | List the last 20 versions |
-| `/checkpoint save` | Draft a new checkpoint from recent main-adventure history |
-| `/checkpoint confirm` | Promote your draft to the active checkpoint |
-| `/checkpoint cancel` | Discard your draft |
-| `/checkpoint rollback <n>` | Restore version `n` on a new timeline |
+| Command | Where | Effect |
+| --- | --- | --- |
+| `/checkpoint show` | all | Show the active checkpoint |
+| `/checkpoint draft` | all | Show the pending draft |
+| `/checkpoint versions` | main, testing | List the last 20 versions |
+| `/checkpoint save` | main | Draft a new checkpoint from all channels since the last boundary |
+| `/checkpoint confirm` | main | Promote your draft to the active checkpoint |
+| `/checkpoint cancel` | main | Discard your draft |
+| `/checkpoint rollback <n>` | main | Restore version `n` (all three parts) on a new timeline |
 
 ## Project structure
 
@@ -61,8 +68,8 @@ src/
 ├── ai/
 │   ├── openaiClient.js
 │   ├── prompts.js            # DM rules, checkpoint instructions, prompt builders
-│   ├── checkpointSchema.js   # Strict JSON schema for checkpoints
-│   └── dungeonMaster.js      # OpenAI calls (DM reply, checkpoint generation)
+│   ├── checkpointSchema.js   # Strict JSON schemas: shared, character, DM notes
+│   └── dungeonMaster.js      # OpenAI calls (DM reply, isolated checkpoint parts)
 ├── services/                 # Business logic; no Discord types
 │   ├── campaignService.js
 │   ├── checkpointService.js
@@ -71,10 +78,13 @@ src/
     ├── client.js
     ├── access.js             # Guild/channel/ownership checks, mention parsing
     ├── reply.js              # Chunked replies without pings
+    ├── checkpointView.js     # Channel -> audience, audience-safe rendering
     ├── commands/checkpointCommand.js
     └── handlers/messageCreate.js
 migrations/                   # Numbered SQL schema migrations
 scripts/migrate.js            # `npm run migrate` entry point
+docs/DECISIONS.md             # Design decision log
+docs/OPERATIONS.md            # Upgrade, verify, recover
 ```
 
 Dependencies only point downward: `discord` → `services` → `db` / `ai`.
@@ -107,8 +117,8 @@ Looming Shade.
 ## Caveats
 
 - No Avrae result ingestion yet.
-- Private-channel checkpoints are not implemented. Private channels use
-  their full active-timeline history.
+- DM replies in private channels still use the full active-timeline
+  private history, not the checkpoint boundary plus character knowledge.
 - No usage or budget accounting.
 - Treat model output as narrative, not as proof that data isolation has
   been audited.

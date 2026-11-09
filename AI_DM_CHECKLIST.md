@@ -41,10 +41,10 @@
 - [x] Initial pre-meeting Dunmere checkpoint saved
 - [x] Manual rollback test restored the initial checkpoint content
 - [x] Manual character-knowledge check: Kraavok does not know Looming Shade after rollback
-- [ ] Safe checkpoint boundaries for both private histories
-- [ ] Shared checkpoint generation that accounts for relevant events from all three channels
+- ⚠️ Safe checkpoint boundaries for both private histories — checkpoints use one `boundary_seq` for all channels; DM replies in private channels don't apply it yet
+- [x] Checkpoint generation accounts for events from all three channels — shared from main; private events go to character knowledge and DM notes (D-001)
 - [ ] Full rollback test with distinct events in main and both private channels
-- [ ] Robust transactional consistency across multiple bot instances
+- ⚠️ Robust transactional consistency across multiple bot instances — `messages.seq` high-water marks and advisory locks; the busy guard is still in-process only
 - [ ] Explicit checkpoint editing workflow (beyond regenerate / cancel / confirm)
 
 **Known limitation:** Private channels currently retain active-timeline history without applying the shared checkpoint boundary. The shared checkpoint draft generator reads main-adventure history, not both private histories.
@@ -53,13 +53,13 @@
 
 - [x] Two independently registered characters in one campaign
 - [x] Separate per-channel conversation histories
-- [ ] Define a durable shared-world state versus per-character knowledge model
-- [ ] Persist discoveries, secrets, and observations per character
-- [ ] Allow the DM to account for events in both private channels
+- [x] Define a durable shared-world state versus per-character knowledge model (D-001)
+- [x] Persist discoveries, secrets, and observations per character (`character_knowledge`)
+- ⚠️ Allow the DM to account for events in both private channels — summarized into `dm_notes`; not yet used in DM reply prompts
 - [ ] Prevent private knowledge from leaking into another player's narration
 - [ ] Synchronize world-changing private events with shared campaign state
 - [ ] Transfer knowledge between characters only through appropriate in-game events
-- [ ] Make checkpoint previews / `show` safe for shared-channel visibility
+- [x] Make checkpoint previews / `show` safe for shared-channel visibility (D-002)
 - [ ] Test: Looming discovers a clue that Kraavok does not know
 - [ ] Test: Kraavok and Looming meet and exchange selected information
 - [ ] Test: rollback preserves knowledge separation across channels
@@ -98,7 +98,7 @@
 
 - [x] Basic API/Discord error handling
 - [x] Per-guild in-process concurrency guard
-- [x] Database migrations and `dnd_bot` permissions applied
+- [x] Database migrations and `dnd_bot` permissions applied — tracked in `migrations/`, `npm run migrate`
 - [ ] OpenAI token usage and cost tracking (`api_usage` table exists)
 - [ ] API rate limits and spending safeguards
 - [ ] PostgreSQL backup schedule and restore drill
@@ -106,7 +106,7 @@
 - [ ] Checkpoint/rollback authorization and approval policy
 - [ ] Automated tests for draft, confirm, versions, and rollback
 - [ ] Integration tests for private-channel isolation and knowledge leaks
-- [ ] Graceful shutdown, reconnect behavior, and recovery tests
+- ⚠️ Graceful shutdown, reconnect behavior, and recovery tests — graceful shutdown done; recovery procedures in `docs/OPERATIONS.md`
 - [ ] Concurrency testing around drafts and incoming messages
 
 ## Delivery Roadmap
@@ -121,10 +121,10 @@
 
 ### Milestone 2 — Multiplayer Knowledge & Synchronization **(next)**
 
-- [ ] Design per-character knowledge storage
+- [x] Design per-character knowledge storage
 - [ ] Incorporate private-channel events into DM world awareness
-- [ ] Build spoiler-safe prompt and checkpoint views
-- [ ] Implement safe private-history checkpoint boundaries
+- ⚠️ Build spoiler-safe prompt and checkpoint views — checkpoint views done; prompts next
+- ⚠️ Implement safe private-history checkpoint boundaries
 - [ ] Run end-to-end secrecy and information-sharing tests
 
 ### Milestone 3 — Character State & Avrae

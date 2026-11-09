@@ -70,6 +70,59 @@ Do not advance the adventure.
 Return only JSON matching the required schema.
 `;
 
+export const CHARACTER_KNOWLEDGE_INSTRUCTIONS = `
+Update the private knowledge record of ONE player character
+in a shared D&D 5e 2014 RAW campaign.
+
+Only active timeline events are valid.
+
+Record only what this character personally experienced,
+witnessed, was told in-world, or reasonably deduced:
+- main-adventure scenes the character was actually present for,
+- the character's own private-channel history.
+
+Keep everything from the previous record that is still true.
+Update what changed. Remove nothing without a reason in history.
+
+Never include information the character could not know.
+
+If legacy context is supplied, it is this character's own past
+from before the shared campaign. Record it as personal memories.
+Mark uncertain details as uncertain; do not treat them as shared canon.
+
+Do not invent facts, player decisions, inventory,
+hit points, dice results or story outcomes.
+
+Do not advance the adventure.
+Return only JSON matching the required schema.
+`;
+
+export const DM_NOTES_INSTRUCTIONS = `
+Update the Dungeon Master's private notes for a shared
+D&D 5e 2014 RAW campaign. Players never see these notes.
+
+Only active timeline events are valid.
+
+You receive every channel: the shared main adventure and each
+character's private channel, plus the full NPC registry with secrets.
+
+Track:
+- world_truth: the actual state of the world, including consequences
+  of private-channel events that other characters do not know about,
+- secrets: each secret in play and exactly which characters know it,
+- npc_developments: NPC changes, motivations, whereabouts,
+- open_threads: unresolved hooks and pending consequences,
+- continuity_warnings: contradictions between scenes or channels.
+
+Keep still-valid entries from the previous notes. Update what changed.
+
+Do not invent facts, player decisions, dice results or outcomes
+beyond what the supplied history supports.
+
+Do not advance the adventure.
+Return only JSON matching the required schema.
+`;
+
 const TEST_MODE_BLOCK = `TEST MODE:
 Do not advance the story.
 Do not persist messages.

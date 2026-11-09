@@ -1,6 +1,14 @@
 import { openai } from './openaiClient.js';
-import { checkpointSchema } from './checkpointSchema.js';
-import { CHECKPOINT_INSTRUCTIONS } from './prompts.js';
+import {
+  characterKnowledgeSchema,
+  checkpointSchema,
+  dmNotesSchema
+} from './checkpointSchema.js';
+import {
+  CHARACTER_KNOWLEDGE_INSTRUCTIONS,
+  CHECKPOINT_INSTRUCTIONS,
+  DM_NOTES_INSTRUCTIONS
+} from './prompts.js';
 import { config } from '../config.js';
 
 const EMPTY_RESPONSE = 'The Dungeon Master did not generate a response.';
@@ -20,26 +28,51 @@ export async function generateDmReply({ instructions, input }) {
   };
 }
 
-/** Summarizes campaign context into a checkpoint object matching the schema. */
-export async function generateCheckpoint(context) {
+/** One strict-JSON summarization call. `context` is serialized as input. */
+async function generateStructured({ name, schema, instructions, context }) {
   const result = await openai.responses.create({
     model: config.openai.model,
-    instructions: CHECKPOINT_INSTRUCTIONS,
+    instructions,
     input: [{ role: 'user', content: JSON.stringify(context) }],
     text: {
-      format: {
-        type: 'json_schema',
-        name: 'campaign_checkpoint',
-        strict: true,
-        schema: checkpointSchema
-      }
+      format: { type: 'json_schema', name, strict: true, schema }
     },
     max_output_tokens: config.openai.checkpointMaxOutputTokens
   });
 
   if (!result.output_text) {
-    throw new Error('OpenAI returned no checkpoint JSON');
+    throw new Error(`OpenAI returned no JSON for ${name}`);
   }
 
   return JSON.parse(result.output_text);
+}
+
+/** Shared checkpoint. Context must contain only shared-safe information. */
+export function generateSharedCheckpoint(context) {
+  return generateStructured({
+    name: 'campaign_checkpoint',
+    schema: checkpointSchema,
+    instructions: CHECKPOINT_INSTRUCTIONS,
+    context
+  });
+}
+
+/** One character's private knowledge. Context: that character's view only. */
+export function generateCharacterKnowledge(context) {
+  return generateStructured({
+    name: 'character_knowledge',
+    schema: characterKnowledgeSchema,
+    instructions: CHARACTER_KNOWLEDGE_INSTRUCTIONS,
+    context
+  });
+}
+
+/** DM-only notes. Context may contain everything. */
+export function generateDmNotes(context) {
+  return generateStructured({
+    name: 'dm_notes',
+    schema: dmNotesSchema,
+    instructions: DM_NOTES_INSTRUCTIONS,
+    context
+  });
 }

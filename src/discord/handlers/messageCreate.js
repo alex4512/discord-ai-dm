@@ -23,7 +23,7 @@ async function handleRequest(message, prompt) {
   const checkpointAction = parseCheckpointCommand(prompt);
 
   if (checkpointAction) {
-    return handleCheckpointCommand(message, checkpointAction);
+    return handleCheckpointCommand(message, checkpointAction, player);
   }
 
   const turn = await playTurn({

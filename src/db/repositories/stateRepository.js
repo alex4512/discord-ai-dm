@@ -2,7 +2,8 @@ import { pool } from '../pool.js';
 
 export async function getState(guildId, db = pool) {
   const result = await db.query(`
-    SELECT checkpoint, version, timeline_id, boundary_at, boundary_seq
+    SELECT checkpoint, character_knowledge, dm_notes,
+           version, timeline_id, boundary_at, boundary_seq
     FROM public.campaign_state
     WHERE guild_id = $1
   `, [guildId]);
@@ -42,10 +43,10 @@ export async function ensureState(guildId, newTimelineId, db = pool) {
   `, [guildId, newTimelineId]);
 }
 
-/** Advances the checkpoint on the current timeline (after a save). */
+/** Advances the snapshot on the current timeline (after a save). */
 export async function advanceCheckpoint(db, {
   guildId,
-  checkpoint,
+  snapshot,
   version,
   boundaryAt,
   boundarySeq
@@ -53,29 +54,48 @@ export async function advanceCheckpoint(db, {
   await db.query(`
     UPDATE public.campaign_state
     SET checkpoint = $2,
-        version = $3,
-        boundary_at = $4,
-        boundary_seq = $5,
+        character_knowledge = $3,
+        dm_notes = $4,
+        version = $5,
+        boundary_at = $6,
+        boundary_seq = $7,
         updated_at = NOW()
     WHERE guild_id = $1
-  `, [guildId, checkpoint, version, boundaryAt, boundarySeq]);
+  `, [
+    guildId,
+    snapshot.checkpoint,
+    snapshot.character_knowledge,
+    snapshot.dm_notes,
+    version,
+    boundaryAt,
+    boundarySeq
+  ]);
 }
 
-/** Restores a checkpoint onto a brand-new timeline (after a rollback). */
+/** Restores a snapshot onto a brand-new timeline (after a rollback). */
 export async function resetToTimeline(db, {
   guildId,
-  checkpoint,
+  snapshot,
   version,
   timelineId
 }) {
   await db.query(`
     UPDATE public.campaign_state
     SET checkpoint = $2,
-        version = $3,
-        timeline_id = $4,
+        character_knowledge = $3,
+        dm_notes = $4,
+        version = $5,
+        timeline_id = $6,
         boundary_at = NULL,
         boundary_seq = NULL,
         updated_at = NOW()
     WHERE guild_id = $1
-  `, [guildId, checkpoint, version, timelineId]);
+  `, [
+    guildId,
+    snapshot.checkpoint,
+    snapshot.character_knowledge,
+    snapshot.dm_notes,
+    version,
+    timelineId
+  ]);
 }

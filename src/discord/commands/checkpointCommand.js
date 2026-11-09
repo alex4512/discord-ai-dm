@@ -1,28 +1,28 @@
 import { config } from '../../config.js';
 import { reply } from '../reply.js';
+import { audienceForChannel, renderSnapshot } from '../checkpointView.js';
 import {
   cancelCheckpointDraft,
   confirmCheckpointDraft,
   createCheckpointDraft,
   getActiveCheckpoint,
+  getPendingDraft,
   listCheckpointVersions,
   rollbackCheckpoint
 } from '../../services/checkpointService.js';
 
 const COMMAND_PATTERN = /^\/checkpoint(?:\s+(.+))?\s*$/i;
-const READ_ONLY_ACTIONS = new Set(['show', 'versions']);
 
 const HELP_TEXT = [
   'Commands:',
   '/checkpoint show',
+  '/checkpoint draft',
   '/checkpoint versions',
   '/checkpoint save',
   '/checkpoint confirm',
   '/checkpoint cancel',
   '/checkpoint rollback <version>'
 ].join('\n');
-
-const formatJson = value => JSON.stringify(value, null, 2);
 
 /** Returns the action text if `prompt` is a /checkpoint command, else null. */
 export function parseCheckpointCommand(prompt) {
@@ -31,8 +31,13 @@ export function parseCheckpointCommand(prompt) {
   return (match[1] || 'help').trim().toLowerCase();
 }
 
+function formatBoundary(row) {
+  if (row.boundary_seq == null) return 'none';
+  return `message #${row.boundary_seq} (${new Date(row.boundary_at).toISOString()})`;
+}
+
 const actions = {
-  async show({ guildId }) {
+  async show({ guildId, audience }) {
     const state = await getActiveCheckpoint(guildId);
 
     if (!state) return 'No shared checkpoint saved yet.';
@@ -40,12 +45,21 @@ const actions = {
     return (
       `Active checkpoint v${state.version}\n` +
       `Timeline: ${state.timeline_id}\n` +
-      `Boundary: ${
-        state.boundary_seq == null
-          ? 'none'
-          : `message #${state.boundary_seq} (${new Date(state.boundary_at).toISOString()})`
-      }\n` +
-      formatJson(state.checkpoint)
+      `Boundary: ${formatBoundary(state)}\n\n` +
+      renderSnapshot(state, audience)
+    );
+  },
+
+  async draft({ guildId, audience }) {
+    const draft = await getPendingDraft(guildId);
+
+    if (!draft) return 'No checkpoint draft pending.';
+
+    return (
+      `Pending draft based on v${draft.based_on_version} ` +
+      `(boundary ${formatBoundary(draft)})\n` +
+      '**NOT YET SAVED**\n\n' +
+      renderSnapshot(draft, audience)
     );
   },
 
@@ -62,14 +76,19 @@ const actions = {
       .join('\n');
   },
 
-  async save({ guildId, userId }) {
+  async save({ guildId, userId, audience }) {
     const draft = await createCheckpointDraft({ guildId, authorId: userId });
+
+    const updated = draft.updatedCharacters.length
+      ? draft.updatedCharacters.join(', ')
+      : 'none';
 
     return (
       `Checkpoint draft based on v${draft.basedOnVersion}\n` +
       '**NOT YET SAVED**\n\n' +
-      formatJson(draft.checkpoint) +
-      '\n\nUse /checkpoint confirm or /checkpoint cancel.'
+      renderSnapshot(draft, audience) +
+      `\n\nCharacter knowledge records generated: ${updated}.` +
+      '\nUse /checkpoint confirm or /checkpoint cancel.'
     );
   },
 
@@ -78,7 +97,7 @@ const actions = {
 
     return (
       `Checkpoint v${version} confirmed. ` +
-      'Main-adventure history boundary updated.'
+      'History boundary updated for all campaign channels.'
     );
   },
 
@@ -95,35 +114,45 @@ async function rollback({ guildId, userId }, targetVersion) {
     `Rollback completed: v${result.restoredVersion} restored ` +
     `as active v${result.version}.\n` +
     `New timeline: ${result.timelineId}\n` +
+    'Shared world, character knowledge and DM notes were all restored.\n' +
     'Previous messages remain stored but are excluded.'
   );
 }
 
+const READ_ONLY = new Set(['show', 'draft', 'versions', 'help']);
+const PRIVATE_ACTIONS = new Set(['show', 'draft', 'help']);
+
 function channelRestriction(channelId, action) {
   const { main, test } = config.channels;
+  const isPrivate = config.privateChannels.some(c => c.channelId === channelId);
 
-  if (channelId === test && !READ_ONLY_ACTIONS.has(action)) {
-    return (
-      'Testing channel is read-only. ' +
-      'Use #main-adventure for checkpoint changes.'
-    );
+  if (channelId === main) return null;
+
+  if (channelId === test) {
+    return READ_ONLY.has(action)
+      ? null
+      : 'Testing channel is read-only. Use #main-adventure for checkpoint changes.';
   }
 
-  if (channelId !== main && channelId !== test) {
-    return (
-      'Checkpoint commands are available only ' +
-      'in #main-adventure or #dm-testing.'
-    );
+  if (isPrivate) {
+    return PRIVATE_ACTIONS.has(action)
+      ? null
+      : 'Private channels support only /checkpoint show and /checkpoint draft.';
   }
 
-  return null;
+  return 'Checkpoint commands are not available in this channel.';
 }
 
-export async function handleCheckpointCommand(message, action) {
-  const restriction = channelRestriction(message.channel.id, action);
+export async function handleCheckpointCommand(message, action, player) {
+  const channelId = message.channel.id;
+  const restriction = channelRestriction(channelId, action);
   if (restriction) return reply(message, restriction);
 
-  const ctx = { guildId: message.guild.id, userId: message.author.id };
+  const ctx = {
+    guildId: message.guild.id,
+    userId: message.author.id,
+    audience: audienceForChannel(channelId, player)
+  };
   const rollbackMatch = action.match(/^rollback\s+(\d+)$/);
 
   let response;
