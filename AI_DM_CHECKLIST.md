@@ -75,13 +75,13 @@
 - [x] D&D 5e (2014 RAW) specified in the DM instructions
 - [x] Player agency: DM does not decide PC actions or dialogue
 - [x] DM instructed not to invent dice results; monster dice come from code (D-013)
-- [ ] Import and persist authoritative character sheets for every PC (our sheets are authoritative; Avrae is an input only)
-- [ ] Track current/max HP, temporary HP, hit dice, and exhaustion
-- [ ] Track Rage, spell slots, class features, and limited-use resources
-- [ ] Track inventory, equipment, consumables, and currency
+- ~~Import and persist full character sheets~~ Not planned: XP only (user decision 2026-11-09); more only on request
+- ~~Track HP, hit dice, exhaustion~~ On request only
+- ~~Track Rage, spell slots, resources~~ On request only
+- ~~Track inventory and currency~~ On request only
 - [x] XP for non-combat challenges and story milestones, rated easy–deadly and priced per level from the DMG thresholds; never for a single check on its own (D-015)
 - [x] XP and level kept by the bot: the DM tags resolved encounters, code computes XP from the CR table, records it in a ledger folded into each save; rollback/undo-safe; level-ups announced privately; `/xp`, `/xp set` (D-012, D-014)
-- [ ] Track conditions, rests, and level progression
+- [x] Level progression from XP (D-014); conditions and rests on request only
 - [x] Monster and NPC dice rolled by the bot: the DM calls a `roll_dice` tool, code rolls with a crypto RNG, every roll is shown above the narration (D-013). Players roll their own however they like (Avrae optional).
 - [x] ~~Parse Avrae roll results automatically~~ Dropped (user decision): players roll in Avrae and tell the DM the result; that keeps their intent and avoids noise
 - [ ] Validate mechanical outcomes against character stats and rules
@@ -104,7 +104,7 @@
 - [x] Persist NPC state changes after significant events — NPC update call at each save
 - [x] Maintain location and world-event records — locations registry + append-only chronicle (D-009)
 - [x] Track unresolved mysteries, objectives, and consequences — shared checkpoint (`objectives`, `pending_decisions`, `unresolved_mysteries`), DM notes (`open_threads`, `world_truth`, `observable_world_state`), character knowledge (`private_objectives`)
-- [ ] NPC own memory, so NPCs can raise past events with a character in shared scenes (D-007 option C, deferred)
+- [ ] NPC own memory, so NPCs can raise past events with a character in shared scenes (D-007 option C) — **next**
 - [x] Validate continuity between main and private scenes — DM notes `continuity_warnings` checked against chronicle and registries; review in `#dm-testing` drafts
 
 ## 6. Reliability, Security & Operations
@@ -201,11 +201,8 @@ Done on 2026-11-09: direct background saves with undo (D-011); XP and levels kep
 
 In order, each agreed as a design before building:
 
-1. **Character sheets** (Milestone 3): HP, AC, conditions, exhaustion, rests, using the same ledger + snapshot mechanism as XP (D-014). The DM needs AC for the monster rolls and currently has to ask for it. Three open questions:
-   - **Visibility.** Full sheet in the player's private channel, only visible state in `#main-adventure`, everything in `#dm-testing`?
-   - **Starting data.** Handover stats, or current values from each player?
-   - **Automatic changes.** Should the DM apply sheet changes automatically, with correction commands? Recommended: yes.
-2. **Resources, inventory and rule checks** on top of the sheets: Rage, spell slots, items, gold.
+1. **NPC memory** (D-007 option C, user priority). NPCs remember their past scenes with each character and can raise them in-world. Design to agree first.
+2. **Character sheets: XP only** (user decision 2026-11-09). A character is a name plus an XP count; level follows from XP (D-014, done). HP, AC, conditions, resources and items are **not** tracked; players state them when relevant, and anything more is added only on request.
 3. **Player onboarding** (Milestone 6). Add a player without config, SQL or hand-written scene setups.
 4. **Hardening** (Milestone 5). Always-on hosting, scheduled backups, cost tracking and automated tests. Later: safe multi-instance operation, including message ordering (see section 6).
 
