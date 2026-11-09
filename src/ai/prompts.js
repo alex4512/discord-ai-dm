@@ -41,6 +41,12 @@ CAMPAIGN MEMORY RULES:
    perceives them. status/location/facts are what the characters in
    this channel know. author_notes are DM-only truth for playing the
    NPC consistently; never state them to players.
+12. In a shared channel you only see what everyone may know.
+   Characters may know more privately. Never claim a character does
+   NOT know something; say it hasn't come up in shared play, and that
+   the player can ask in their private channel or share it in-game.
+13. Never mention checkpoints, registries, records, entries or other
+   bookkeeping. Speak about the world, or plainly out-of-character.
 
 For OOC questions, answer without advancing the narrative.
 
