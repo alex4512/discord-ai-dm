@@ -177,6 +177,13 @@ Adopted 2026-11-10 (D-021). Each feature still gets its own design agreed with t
 - **3 Hidden objects.** This fits the locations registry (D-009). Map positions today exist only per sketch (D-018/D-019), so the design has to decide how a stored object gets a position on a map that is redrawn each time.
 - **4 Passive checks.** This needs each character's passive scores (Perception, Investigation, Insight). That is a small exception to the XP-only decision (D-014), so the owner decides it during the design. Secret rolls can use the existing bot dice (D-013) with results kept for `#dm-testing`.
 - **5–8 Voice.** These are a new cost type. The `api_usage` table exists but isn't used yet; feature 8 should also cover the existing text and image spend (hardening item *cost tracking*).
+- **Voice research (2026-11-10).** The owner wants to start with voice. Findings, before any design:
+  - **OpenAI** (`gpt-4o-mini-tts`, `tts-1`, `tts-1-hd`): Greek is in its 57-language list, but *"Voices are currently optimized for English"*, so Greek has a slight English accent. It takes instructions on how to speak, which suits NPC voice profiles. Best voices: `marin`, `cedar`. Formats: mp3, opus, aac, flac, wav, pcm. **⚠️ All three models shut down on 2027-01-06.** The replacement, `gpt-realtime-2.1-mini`, uses the streaming Realtime API and is not a drop-in change.
+  - **Azure:** native Greek voices Athina (female) and Nestoras (male). Cheap, with a free monthly allowance; only 2 Greek voices.
+  - **Google Cloud Chirp 3 HD:** Greek (el-GR) supported; several HD voices.
+  - **ElevenLabs:** native Greek and Greek-accented English; the most expressive and the most expensive.
+  - **Open questions for the owner:** should narration be English (today) or Greek? Which service, given the OpenAI shutdown? Suggested next step: listen to sample clips in both languages (OpenAI samples can be made with the existing key; the others need an account).
+  - Sources: [OpenAI TTS guide](https://developers.openai.com/api/docs/guides/text-to-speech), [Azure language support](https://learn.microsoft.com/en-my/AZURE/ai-services/speech-service/language-support), [Google Chirp 3 HD](https://docs.cloud.google.com/text-to-speech/docs/chirp3-hd), [ElevenLabs languages](https://elevenlabs.io/docs/help-center/other/what-languages-do-you-support).
 
 **Already covered by the MVP** (from the feature summary, with corrections):
 - Character-specific knowledge isolation (D-002, D-004, D-010).
@@ -241,7 +248,7 @@ Decided against: Avrae roll reading (players report rolls in any words, Avrae op
 
 In order, each agreed as a design before building:
 
-1. **Phase 1 Reliability** (section 8): Consistency Auditor, then DM Diagnostics.
+1. **Voice first (owner's wish, 2026-11-10):** decide narration language and service from sample clips (research in section 8), then design voice narration with usage tracking and budget controls. Phase 1 Reliability (Consistency Auditor, then DM Diagnostics) follows unless the owner reorders.
 2. **Phase 2 Exploration**: hidden objects, then passive and secret checks.
 3. **Phase 3 Immersion**: voice narration, NPC voices, hybrid mode, with usage tracking and budget controls built alongside.
 
