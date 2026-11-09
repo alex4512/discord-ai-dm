@@ -111,6 +111,20 @@ export const dmNotesSchema = {
   type: 'object',
   additionalProperties: false,
   properties: {
+    // D-006: perceivable physical state, never who caused it. Not tagged:
+    // visible to every channel after a name check in code.
+    observable_world_state: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          location: { type: 'string' },
+          state: { type: 'string' }
+        },
+        required: ['location', 'state']
+      }
+    },
     world_truth: taggedList(),
     secrets: taggedList('secret'),
     npc_developments: taggedList(),
@@ -119,6 +133,7 @@ export const dmNotesSchema = {
     notes: taggedList()
   },
   required: [
+    'observable_world_state',
     'world_truth',
     'secrets',
     'npc_developments',

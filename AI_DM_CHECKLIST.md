@@ -57,7 +57,7 @@
 - [x] Persist discoveries, secrets, and observations per character (`character_knowledge`)
 - [x] Allow the DM to account for events in both private channels — `dm_notes` in every DM prompt, secrets filtered per audience (D-004)
 - [x] Prevent private knowledge from leaking into another player's narration — character knowledge and every DM-notes entry filtered by `known_by` in code (D-004 revision); NPC registry secrets still prompt-based
-- [ ] Synchronize world-changing private events with shared campaign state
+- [x] Synchronize world-changing private events with shared campaign state — unattributed `observable_world_state` reaches every channel (D-006)
 - [ ] Transfer knowledge between characters only through appropriate in-game events
 - [x] Make checkpoint previews / `show` safe for shared-channel visibility (D-002)
 - [ ] Test: Looming discovers a clue that Kraavok does not know
@@ -103,7 +103,7 @@
 - [ ] API rate limits and spending safeguards
 - [ ] PostgreSQL backup schedule and restore drill
 - [ ] Structured logging and operational diagnostics
-- [ ] Checkpoint/rollback authorization and approval policy
+- [x] Checkpoint/rollback authorization and approval policy — every registered player may save/rollback; only the creator confirms a draft (D-005)
 - [ ] Automated tests for draft, confirm, versions, and rollback
 - [ ] Integration tests for private-channel isolation and knowledge leaks
 - ⚠️ Graceful shutdown, reconnect behavior, and recovery tests — graceful shutdown done; recovery procedures in `docs/OPERATIONS.md`
@@ -122,7 +122,7 @@
 ### Milestone 2 — Multiplayer Knowledge & Synchronization **(next)**
 
 - [x] Design per-character knowledge storage
-- [ ] Incorporate private-channel events into DM world awareness
+- [x] Incorporate private-channel events into DM world awareness (D-004, D-006)
 - [x] Build spoiler-safe prompt and checkpoint views (D-002, D-004)
 - [x] Implement safe private-history checkpoint boundaries
 - [ ] Run end-to-end secrecy and information-sharing tests
@@ -184,6 +184,23 @@ The first run of steps 12–14 **failed**: the token leaked into `#main-adventur
 | 13 | `#main-adventure` | *(OOC) What is hidden in Kraavok's boot?* | **Does not know.** Any mention is a leak: roll back immediately |
 | 14 | `#dm-testing` | *What is hidden in Kraavok's boot?* | Knows |
 
-All commands are sent as `@Dungeon Master <text>`. Repeat with `#looming-private` once Looming Shade plays privately.
+All commands are sent as `@Dungeon Master <text>`.
+
+## Live Test: Looming Shade's First Private Session (in production)
+
+Looming Shade's first private play happens in the real campaign. The DM
+(`#dm-testing`) checks each step afterwards. Nothing extra is needed from the
+players beyond normal play and one save. If any check fails, follow
+*Private information leaked* in `docs/OPERATIONS.md` (roll back to the last
+good version).
+
+| # | Who / channel | Action | Check (in `#dm-testing`) |
+|---|---|---|---|
+| 1 | Looming, `#looming-private` | Plays normally, including at least one private discovery and, ideally, a visible change somewhere (a forced lock, a moved object) | — |
+| 2 | Anyone, `#main-adventure` | `/checkpoint save`, review, `/checkpoint confirm` | Save output in main has **no** trace of Looming's discovery |
+| 3 | DM, `#dm-testing` | `/checkpoint show` | `Looming Shade: private knowledge` exists (first record, D-003); discovery entries are `known_by: ["Looming Shade"]`; any visible change is in `observable_world_state` **without names** |
+| 4 | Kraavok, `#kraavok-private` | Asks about the place Looming changed, if he goes there | The DM describes the change, **not** who did it, and nothing of Looming's discovery |
+| 5 | Kraavok, `#main-adventure` | Plays normally | No trace of Looming's discovery |
+| 6 | Later, when they meet and Looming **tells** Kraavok in `#main-adventure`, then save + confirm | `#dm-testing` `/checkpoint show` | The told fact is now in the shared world, and its DM-notes entries list both characters |
 
 **Command convention:** Send `@Dungeon Master /checkpoint ...` as an ordinary Discord message. Native slash commands are deliberately not enabled.

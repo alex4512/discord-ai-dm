@@ -56,7 +56,11 @@ export async function playTurn({
     state,
     legacyCheckpoint,
     characterKnowledge: characterKnowledgeFor(state.character_knowledge, audience),
-    dmNotes: dmNotesFor(state.dm_notes, readersOf(audience, players)),
+    dmNotes: dmNotesFor(
+      state.dm_notes,
+      readersOf(audience, players),
+      players.map(p => p.character_name)
+    ),
     npcs,
     testMode
   });

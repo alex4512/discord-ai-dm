@@ -181,3 +181,56 @@ instructions.
 **Still model-dependent.** The NPC registry (with `secrets`) is still in
 every prompt, unchanged from before D-004. It's empty today. Filtering it the
 same way is the next step if NPC secrets get populated.
+
+---
+
+## D-005: Every registered player may save and roll back checkpoints
+
+**Date:** 2026-11-09 · **Status:** accepted
+
+**Context.** The handover flagged that any registered player can run
+`/checkpoint save` and `rollback`. Only the draft creator can confirm their
+own draft.
+
+**Decision.** Keep it that way. No extra approval step.
+
+**Why.** The server is small and private: two trusted players and the DM.
+Checkpoint changes are also restricted to `#main-adventure`, where everyone
+can see them. Rollback is non-destructive (D-001: versions are append-only),
+so a mistaken rollback is undone with another rollback.
+
+**Revisit if** the group grows or players disagree about canon.
+
+---
+
+## D-006: Private events reach other channels as unattributed observable world state
+
+**Date:** 2026-11-09 · **Status:** accepted · **Code:** `src/services/audience.js`
+
+**Context.** After the D-004 revision, consequences of a private event only
+reached the channel where they happened. If Kraavok smashes the chapel door
+privately and Looming Shade later visits the chapel, the DM didn't know the
+door was broken.
+
+**Decision.** DM notes get `observable_world_state: [{ location, state }]`,
+the physical state anyone arriving at that place could perceive. It's
+**not** tagged by `known_by`, and it reaches every channel's prompt. The
+*cause* stays in `world_truth` with `known_by` (D-004). The DM rule says to
+describe the state when a character perceives the place, never who caused it.
+
+**Guard in code (fails closed).** For players, an observable entry is dropped
+if it mentions any registered character name or name part of 4+ letters
+(`Kraavok`, `Looming`, `Shade`). Empty and old-format entries are also dropped.
+This may occasionally drop a harmless entry, for example "a looming tower".
+That's accepted. `#dm-testing` sees everything.
+
+**Still model-dependent.** The model decides what is observable. It's
+instructed to exclude hidden or carried things (items on a person, concealed
+objects, conversations). A real-call test kept a hidden ruby out and recorded
+only the broken door, unattributed. A careless description could still imply
+a cause ("bootprints the size of a half-orc's"). Watch for it in play, and
+roll back if it leaks (see OPERATIONS).
+
+**Consequence.** Consequences now cross channels the way they would in the
+world, and the shared checkpoint picks them up once they're perceived in
+`#main-adventure`.
