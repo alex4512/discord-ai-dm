@@ -190,6 +190,8 @@ All commands are sent as `@Dungeon Master <text>`.
 
 ## Live Test: Looming Shade's First Private Session (in production)
 
+Step-by-step session guide for George and the admin, in Greek: `docs/SESSION_GUIDE_GR.md`.
+
 Looming Shade's first private play happens in the real campaign. The DM
 (`#dm-testing`) checks each step afterwards. Nothing extra is needed from the
 players beyond normal play and one save. If any check fails, follow

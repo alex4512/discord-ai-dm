@@ -118,6 +118,7 @@ scripts/migrate.js            # `npm run migrate` entry point
 scripts/import-world.js       # One-time NPC/location/chronicle import from a local seed
 docs/DECISIONS.md             # Design decision log
 docs/OPERATIONS.md            # Upgrade, verify, recover
+docs/SESSION_GUIDE_GR.md      # Player + admin session guide (Greek)
 ```
 
 Dependencies only point downward: `discord` → `services` → `db` / `ai`.
