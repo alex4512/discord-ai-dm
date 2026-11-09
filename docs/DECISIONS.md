@@ -415,3 +415,19 @@ than a text turn.
 **Not game state.** Images aren't versioned and aren't part of the story
 history. A rollback resets arrivals (new timeline), and stored images are
 reused.
+
+## D-010: Private channels see recent main play; other characters' class and level stay hidden
+
+**Date:** 2026-11-09 · **Status:** accepted · **Code:** `src/ai/prompts.js`, `src/services/dungeonMasterService.js`, `src/services/checkpointService.js`
+
+**Problems seen in live play.**
+1. A private channel's prompt had only that channel's history plus the last saved checkpoint. #main-adventure play since the last save didn't reach it, so after Kraavok and Looming met in main, neither private channel knew until someone saved.
+2. The DM told Looming's player Kraavok's class and level. Every prompt listed every character's class and level, every stored player turn carried `Class:`/`Level:` lines, and the save step passed both into the shared checkpoint.
+
+**Decisions.**
+- **Recent main play in private prompts.** A private channel's prompt gets a "RECENT SHARED SCENE" block: #main-adventure messages since the checkpoint boundary, as a plain transcript ("Kraavok: …", "DM: …"), using up to half of `HISTORY_MAX_CHARS`. Every player can read #main-adventure in Discord, so nothing new is disclosed. The character knows what happened where they were present. Other private channels are never included.
+- **Other characters by name only.** Outside #dm-testing, the prompt shows only the current player's own class and level; other player characters appear by name. #dm-testing keeps full summaries.
+- **Stored player turns carry the name only** (`Character: X`, no class or level). Older stored turns are stripped when rendered into the transcript.
+- **Saves.** The shared-checkpoint generator gets names only. The checkpoint and character-knowledge instructions forbid recording player characters' class, level or game statistics.
+
+**Not done (user decision: fix forward only).** v16 still holds "Kraavok is a level 4 Barbarian" in the shared checkpoint and in Looming's knowledge, and older main turns keep their class/level lines. The next saves are instructed not to record class or level, so those entries should drop out, but this is not guaranteed.

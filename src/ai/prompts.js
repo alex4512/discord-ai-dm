@@ -101,6 +101,9 @@ Include both registered player characters.
 If their locations or conditions are uncertain,
 state that explicitly.
 
+Never record a player character's class, level or other game
+statistics; describe only what others can see in the world.
+
 Do not advance the adventure.
 Return only JSON matching the required schema.
 `;
@@ -120,6 +123,8 @@ Keep everything from the previous record that is still true.
 Update what changed. Remove nothing without a reason in history.
 
 Never include information the character could not know.
+Never record another player character's class, level or game statistics;
+only what this character has seen or been told of them in the world.
 
 If legacy context is supplied, it is this character's own past
 from before the shared campaign. Record it as personal memories.
@@ -277,6 +282,7 @@ export function buildDmInstructions({
   npcs,
   locations,
   chronicle,
+  recentSharedScene,
   testMode
 }) {
   const hasSavedCheckpoint = state.version > 0;
@@ -289,8 +295,9 @@ export function buildDmInstructions({
 
     `CURRENT PLAYER:\n${JSON.stringify(player)}`,
 
-    'REGISTERED PLAYER CHARACTERS:\n' +
-      JSON.stringify(players.map(toCharacterSummary)),
+    'REGISTERED PLAYER CHARACTERS (class and level of other characters ' +
+      'are not known here; never state them):\n' +
+      JSON.stringify(charactersFor(audience, player, players)),
 
     `ACTIVE CHECKPOINT VERSION:\n${state.version}`,
 
@@ -328,6 +335,15 @@ export function buildDmInstructions({
     );
   }
 
+  if (recentSharedScene) {
+    blocks.push(
+      'RECENT SHARED SCENE (main adventure since the last checkpoint, ' +
+      'oldest first; it is canon and newer than the checkpoint. This ' +
+      'character knows what happened where they were present):\n' +
+      recentSharedScene
+    );
+  }
+
   if (testMode) blocks.push(TEST_MODE_BLOCK);
 
   return `\n${blocks.join('\n\n')}\n`;
@@ -335,14 +351,43 @@ export function buildDmInstructions({
 
 /** The player's turn as sent to the model (and persisted to history). */
 export function buildPlayerInput(player, prompt) {
+  // Name only: stored turns are replayed to other audiences, which must not
+  // learn another character's class or level (D-010).
   return `
 Character: ${player.character_name}
-Class: ${player.character_class}
-Level: ${player.character_level}
 
 Player message:
 ${prompt}
 `;
+}
+
+const STORED_TURN = /Character:\s*(.+?)\s*\n[\s\S]*?Player message:\s*\n([\s\S]*)$/;
+
+/**
+ * Renders main-adventure history as a plain transcript for a private
+ * channel's prompt. Player turns become "Name: message"; older stored
+ * turns that still carry class/level lines are reduced the same way.
+ */
+export function formatSharedTranscript(history) {
+  return history
+    .map(({ role, content }) => {
+      if (role === 'assistant') return `DM: ${content.trim()}`;
+      const match = String(content).match(STORED_TURN);
+      return match
+        ? `${match[1]}: ${match[2].trim()}`
+        : `Player: ${String(content).trim()}`;
+    })
+    .join('\n\n');
+}
+
+/** Characters as one audience may see them: others by name only (D-010). */
+function charactersFor(audience, player, players) {
+  if (audience.kind === 'dm') return players.map(toCharacterSummary);
+  return players.map(p =>
+    p.character_name === player.character_name
+      ? toCharacterSummary(p)
+      : { name: p.character_name }
+  );
 }
 
 export const IMAGE_PROMPT_INSTRUCTIONS = `

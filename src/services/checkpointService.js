@@ -129,6 +129,9 @@ export async function createCheckpointDraft({ guildId, authorId }) {
 
   const playerSummaries = players.map(toCharacterSummary);
   const characterNames = players.map(p => p.character_name);
+  // The shared checkpoint is read in every private channel: names only, so
+  // no character learns another's class or level (D-010).
+  const playerNames = characterNames.map(name => ({ name }));
 
   // World views for summarization inputs never include author_notes (D-007).
   const worldKnownTo = readers => ({
@@ -142,7 +145,7 @@ export async function createCheckpointDraft({ guildId, authorId }) {
     active_checkpoint: isFirstVersion ? null : previous.checkpoint,
     legacy_kraavok: isFirstVersion ? legacy : null,
     active_main_history: mainHistory,
-    players: playerSummaries,
+    players: playerNames,
     world_known_to_everyone: worldKnownTo(characterNames)
   });
 

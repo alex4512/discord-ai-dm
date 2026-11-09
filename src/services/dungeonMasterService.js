@@ -2,7 +2,12 @@ import { getState } from '../db/repositories/stateRepository.js';
 import { deleteMessage, getHistory, storeMessage } from '../db/repositories/messageRepository.js';
 import { getPlayers } from '../db/repositories/playerRepository.js';
 import { generateDmReply } from '../ai/dungeonMaster.js';
-import { buildDmInstructions, buildPlayerInput } from '../ai/prompts.js';
+import {
+  buildDmInstructions,
+  buildPlayerInput,
+  formatSharedTranscript
+} from '../ai/prompts.js';
+import { config } from '../config.js';
 import { getCampaignLegacyCheckpoint } from './campaignService.js';
 import {
   audienceForChannel,
@@ -49,7 +54,7 @@ export async function playTurn({
   const testMode = audience.kind === 'dm';
   const state = await getState(guildId);
 
-  const [history, legacyCheckpoint, players] = await Promise.all([
+  const [history, sharedHistory, legacyCheckpoint, players] = await Promise.all([
     testMode
       ? []
       : getHistory({
@@ -58,6 +63,17 @@ export async function playTurn({
           timelineId: state.timeline_id,
           afterSeq: state.boundary_seq
         }),
+    // A private channel also sees main-adventure play since the last save
+    // (D-010): it is public to every player and newer than the checkpoint.
+    audience.kind === 'character'
+      ? getHistory({
+          guildId,
+          channelId: config.channels.main,
+          timelineId: state.timeline_id,
+          afterSeq: state.boundary_seq,
+          maxChars: Math.floor(config.history.maxChars / 2)
+        })
+      : [],
     state.version === 0 ? getCampaignLegacyCheckpoint(guildId) : null,
     getPlayers(guildId)
   ]);
@@ -77,6 +93,9 @@ export async function playTurn({
     npcs: npcsFor(state.npcs, readers, characterNames, { includeAuthorNotes: true }),
     locations: locationsFor(state.locations, readers, characterNames, { includeAuthorNotes: true }),
     chronicle: chronicleFor(state.chronicle, readers),
+    recentSharedScene: sharedHistory.length
+      ? formatSharedTranscript(sharedHistory)
+      : null,
     testMode
   });
 
