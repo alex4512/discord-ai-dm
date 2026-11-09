@@ -43,11 +43,11 @@
 - [x] Manual character-knowledge check: Kraavok does not know Looming Shade after rollback
 - ⚠️ Safe checkpoint boundaries for both private histories — checkpoints use one `boundary_seq` for all channels; DM replies in private channels don't apply it yet
 - [x] Checkpoint generation accounts for events from all three channels — shared from main; private events go to character knowledge and DM notes (D-001)
-- [ ] Full rollback test with distinct events in main and both private channels
+- ⚠️ Full rollback test with distinct events in main and both private channels — passed 2026-11-09 for main + Kraavok private (see manual test below); Looming private pending
 - ⚠️ Robust transactional consistency across multiple bot instances — `messages.seq` high-water marks and advisory locks; the busy guard is still in-process only
 - [ ] Explicit checkpoint editing workflow (beyond regenerate / cancel / confirm)
 
-**Known limitation:** Private channels currently retain active-timeline history without applying the shared checkpoint boundary. The shared checkpoint draft generator reads main-adventure history, not both private histories.
+**Known limitation:** DM replies in private channels still read the full active-timeline private history instead of the checkpoint boundary plus the character's knowledge record. Checkpoint generation already reads all three channels.
 
 ## 3. Multiplayer Synchronization & Character Knowledge — NEXT PRIORITY
 
@@ -158,5 +158,25 @@
 6. Verify that the active version increases, the timeline UUID changes, and the checkpoint content matches the target version.
 7. Ask the DM about the abandoned event. It should not be treated as active canon.
 8. Repeat with distinct private-channel discoveries once Milestone 2 is implemented.
+
+## Manual Regression Test: Private Knowledge & Rollback
+
+Last passed: **2026-11-09** (v2 → save v3 → rollback to v2 as v4), main + Kraavok private.
+
+| # | Channel | Send | Pass if |
+| --- | --- | --- | --- |
+| 1 | `#dm-testing` | `/checkpoint show` | Active version shown; all parts visible |
+| 2 | `#kraavok-private` | A private discovery, e.g. *finds a carved bone token, hides it in his boot* | DM narrates it |
+| 3 | `#main-adventure` | Any in-character question | Reply never mentions the private discovery |
+| 4 | `#main-adventure` | `/checkpoint save` | Shared world only; **discovery absent**; "Character knowledge records generated: Kraavok" |
+| 5 | `#dm-testing` | `/checkpoint draft` | Shared + Kraavok knowledge (discovery present) + DM notes (discovery as secret, `known_by: Kraavok`) |
+| 6 | `#kraavok-private` | `/checkpoint draft` | Shared + own knowledge; **no DM notes** section |
+| 7 | `#main-adventure` | `/checkpoint confirm` | New version confirmed |
+| 8 | `#main-adventure` | `/checkpoint show` | Boundary `message #N`; discovery absent |
+| 9 | `#main-adventure` | `/checkpoint rollback <previous>` | New version + new timeline; all parts restored |
+| 10 | `#kraavok-private` | `/checkpoint show` | Own knowledge back to the restored version's (e.g. nothing recorded yet) |
+| 11 | `#dm-testing` | `/checkpoint versions` | Append-only history shows save + rollback |
+
+All commands are sent as `@Dungeon Master <text>`. Repeat with `#looming-private` once Looming Shade plays privately.
 
 **Command convention:** Send `@Dungeon Master /checkpoint ...` as an ordinary Discord message. Native slash commands are deliberately not enabled.
