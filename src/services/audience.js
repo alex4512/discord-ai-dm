@@ -232,6 +232,13 @@ export function npcMemoriesFor(npcs, audience, readers, sceneText) {
 export const CHRONICLE_PROMPT_LIMIT = 30;
 
 /**
+ * Play turns see (almost) the whole chronicle, so the DM remembers the
+ * early campaign (D-032). Saves keep CHRONICLE_PROMPT_LIMIT. Past this cap
+ * the oldest events drop out; by then old events should be compacted.
+ */
+export const TURN_CHRONICLE_LIMIT = 400;
+
+/**
  * Chronicle entries a set of readers may know (D-009): an event is kept
  * only if EVERY reader is in its known_by (fail closed). Most recent
  * `limit` entries, oldest first. `readers === null` (the DM) gets all.

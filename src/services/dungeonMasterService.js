@@ -19,6 +19,7 @@ import {
   characterKnowledgeFor,
   dmNotesFor,
   chronicleFor,
+  TURN_CHRONICLE_LIMIT,
   locationsFor,
   mentionedIn,
   npcMemoriesFor,
@@ -128,7 +129,7 @@ export async function playTurn({
       locationsFor(state.locations, readers, characterNames, { includeAuthorNotes: true }),
       sceneText
     ),
-    chronicle: chronicleFor(state.chronicle, readers),
+    chronicle: chronicleFor(state.chronicle, readers, { limit: TURN_CHRONICLE_LIMIT }),
     recentSharedScene: sharedHistory.length
       ? formatSharedTranscript(sharedHistory)
       : null,

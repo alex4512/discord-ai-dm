@@ -862,3 +862,17 @@ If B feels thin after a session, change `OPENAI_MODEL=gpt-5.6-terra` and add its
 **Checked.** Mocked routing and secrecy tests (teller per channel, origin only for Kraavok, storage only in main, all rolled back), and one real Greek story for Kraavok: about 900 words, 18 s.
 
 **Fixed the same day.** The first real telling showed that storing the story was not enough: the save turned it into one shared event listing names, and the 28 detailed events stayed Kraavok-only (the chronicle is append-only), so Looming's DM knew nothing about the bell. Now the events themselves are shared. Applied once by hand for that telling (v43; v44 is an empty duplicate).
+
+## D-032: Play turns see the whole chronicle
+
+**Date:** 2026-11-10 · **Status:** accepted (owner) · **Code:** `TURN_CHRONICLE_LIMIT` in `src/services/audience.js`, used in `src/services/dungeonMasterService.js`
+
+**Context.** After Kraavok's story was shared (D-031), Looming's DM still knew almost nothing of it: a turn saw only the 30 most recent chronicle events, and the story was the oldest part of the campaign.
+
+**Decision.** Play turns get up to 400 chronicle events (all of them today, about 170). Saves keep 30 (`CHRONICLE_PROMPT_LIMIT`), since they run on gpt-5.4 and summarize recent play.
+
+**Cost.** About 9k more input tokens per turn today. The chronicle only changes at saves, so it is cached: a measured Looming turn was 14.7k input tokens, 14.6k of them cached, $0.0023. Each 100 more events adds about 5k tokens (about $0.0004 a turn cached, $0.004 uncached on mini).
+
+**Later.** When the chronicle nears 400 events, the oldest drop out of turns again. Before then, compact old events into chapter summaries (backlog).
+
+**Checked.** A rolled-back Looming turn asking what Kraavok told the group named Edric, Mara, the crypt, Mother Vael, Orren, Voss, the evacuation and the fragment (before: only "the First Bell").
