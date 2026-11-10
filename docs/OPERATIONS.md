@@ -57,6 +57,7 @@ commit message.
 | `0005_locations_chronicle` | `locations`, `chronicle` on state, versions, drafts | yes | restore backup, or drop the added columns |
 | `0006_scene_images` | new tables `image_generations`, `scene_images`, `scene_arrivals` | yes | drop the three tables |
 | `0007_xp_progress` | `progress` JSONB on state/versions/drafts; new table `xp_awards` (seq from the messages sequence) | yes | drop `xp_awards` and the three `progress` columns |
+| `0010_openai_usage` | new table `openai_usage`: tokens and estimated cost per OpenAI call (D-026). Not story data: never versioned or rolled back | yes (older code ignores it) | drop `openai_usage` |
 | `0009_inventory` | `inventory` JSONB on state/versions/drafts; new table `inventory_events` (seq from the messages sequence). Backfilled 2026-11-10 with 9 items from the shared record (D-022) | yes, but **restart before the next save**: a save by older code moves the boundary past the backfilled events without folding them, so they'd be lost (re-run the backfill then). Done 2026-11-10: v33 was saved by the new code | drop `inventory_events` and the three `inventory` columns |
 | `0008_player_channels` | `campaign_players.private_channel_id` + unique index (D-020). Filled once for Kraavok and Looming from the old `.env` values (2026-11-09) | yes (older code still reads `.env`) | drop the column and index |
 
@@ -66,6 +67,36 @@ restart.
 
 Pre-change backups taken during development live in `../backups/`
 (outside the repo).
+
+## Costs (D-026)
+
+Every OpenAI call prints a line to the console, such as
+`[usage] turn gpt-5.4-mini in=12000 cached=8000 out=300 ~$0.0050`, and is
+stored in `openai_usage`. When the month's estimate crosses 80% and 100% of
+`MONTHLY_BUDGET_USD`, a warning goes to `#dm-testing`. Play never stops.
+The estimate only counts calls since 2026-11-10 (migration 0010) and uses a
+fixed price table in `src/services/usage.js`. **OpenAI's dashboard is the
+real bill:** set a budget limit there too.
+
+This month so far, by kind of call:
+
+```sql
+SELECT kind, model, count(*), round(sum(est_usd), 2) AS usd
+  FROM public.openai_usage
+ WHERE created_at >= date_trunc('month', now())
+ GROUP BY 1, 2 ORDER BY usd DESC;
+```
+
+Levers, cheapest first:
+
+- **Models:** `OPENAI_MODEL` (turns, maps, image prompts) and
+  `CHECKPOINT_MODEL` (saves) in `.env`, then restart.
+- **Saves:** each save makes about 5 large calls. Save at the end of a
+  session or a chapter, not after every scene.
+- **History:** `HISTORY_MAX_CHARS` (per channel, since the last save). A
+  save also resets it.
+- **Images:** `IMAGE_DAILY_LIMIT`.
+- **Testing:** `#dm-testing` turns cost the same as real ones.
 
 ## Recovery
 

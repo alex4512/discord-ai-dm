@@ -206,8 +206,9 @@ const eventItem = {
 };
 
 /**
- * World update at each save (D-007, D-009): the complete NPC and location
- * registries plus the NEW events since the last checkpoint. author_notes
+ * World update at each save (D-007, D-009): the NPC and location entries
+ * that are new or changed (D-026; omitted entries are kept by mergeUpdate)
+ * plus the NEW events since the last checkpoint. author_notes
  * are deliberately NOT part of this schema: only the DM writes them.
  */
 export const worldUpdateSchema = {

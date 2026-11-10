@@ -15,6 +15,7 @@ import {
 import { sceneMapSchema } from './mapSchema.js';
 import { config } from '../config.js';
 import { rollDice } from '../services/dice.js';
+import { recordUsage } from '../services/usage.js';
 
 const EMPTY_RESPONSE = 'The Dungeon Master did not generate a response.';
 
@@ -94,6 +95,7 @@ export async function generateDmReply({ instructions, input }) {
       tool_choice: round < MAX_TOOL_ROUNDS ? 'auto' : 'none',
       max_output_tokens: config.openai.maxOutputTokens
     });
+    await recordUsage({ kind: 'turn', model: config.openai.model, usage: result.usage });
 
     const calls = (result.output || []).filter(item => item.type === 'function_call');
 
@@ -120,9 +122,9 @@ export async function generateDmReply({ instructions, input }) {
 }
 
 /** One strict-JSON summarization call. `context` is serialized as input. */
-async function generateStructured({ name, schema, instructions, context }) {
+async function generateStructured({ name, schema, instructions, context, model = config.openai.checkpointModel }) {
   const result = await openai.responses.create({
-    model: config.openai.model,
+    model,
     instructions,
     input: [{ role: 'user', content: JSON.stringify(context) }],
     text: {
@@ -130,6 +132,7 @@ async function generateStructured({ name, schema, instructions, context }) {
     },
     max_output_tokens: config.openai.checkpointMaxOutputTokens
   });
+  await recordUsage({ kind: name, model, usage: result.usage });
 
   if (result.status === 'incomplete') {
     const reason = result.incomplete_details?.reason || 'unknown reason';
@@ -182,7 +185,8 @@ export function generateSceneMap(context) {
     name: 'scene_map',
     schema: sceneMapSchema,
     instructions: MAP_INSTRUCTIONS,
-    context
+    context,
+    model: config.openai.model
   });
 }
 

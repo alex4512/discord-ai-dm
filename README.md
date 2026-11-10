@@ -182,6 +182,7 @@ src/
 │   ├── progressService.js    # XP totals, levels, save folding
 │   ├── loot.js               # Loot tags, checks, per-audience inventory views (D-022)
 │   ├── inventoryService.js   # Current inventory, save folding, recording
+│   ├── usage.js              # OpenAI usage + cost estimate per call, budget warnings
 │   ├── registry.js           # Pure registry/chronicle/NPC-memory merge helpers
 │   ├── campaignService.js
 │   ├── checkpointService.js
@@ -204,6 +205,14 @@ docs/SESSION_GUIDE_GR.md      # Player + admin session guide (Greek)
 ```
 
 Dependencies only point downward: `discord` → `services` → `db` / `ai`.
+
+## Costs
+
+Play (turns, maps, image prompts) uses `OPENAI_MODEL`, and saves use
+`CHECKPOINT_MODEL` (D-026). Every OpenAI call logs its tokens and an
+estimated cost to the console and to `openai_usage`. `#dm-testing` gets a
+warning at 80% and at 100% of `MONTHLY_BUDGET_USD`; play never stops. See
+[docs/OPERATIONS.md](docs/OPERATIONS.md#costs-d-026).
 
 ## Database
 

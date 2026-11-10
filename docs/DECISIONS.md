@@ -733,3 +733,32 @@ reused.
 - **Declined:**
   - Release notes for players, since features change too often.
   - Teaching the DM the command list.
+
+## D-026: Cheaper model for play, usage logging, budget warnings, smaller saves
+
+**Date:** 2026-11-10 · **Status:** accepted (owner) · **Code:** `src/services/usage.js`, `src/config.js`, `WORLD_UPDATE_INSTRUCTIONS` · **Migration:** 0010
+
+**Context.** The OpenAI budget ($15) was used up in two days.
+- **Everything ran on gpt-5.4:** turns, saves, maps and image prompts.
+- **Each turn sends about 12–17k tokens.** The fixed rules (about 8k characters) are cached by OpenAI. The checkpoint, knowledge, DM notes, NPCs, places and chronicle are not.
+- **11-09 was heavy:** 174 replies and 32 saves.
+- **Development test runs used the real model.** OpenAI bills those calls even though the database was rolled back.
+- **The world update returned the complete NPC and place registries at every save.** That's about 11k output tokens, roughly $0.20 per save for that one call, and close to the 12k output cap, so a save would soon have failed.
+- **Nothing tracked the spend.** `MONTHLY_BUDGET_USD` was in `.env`, but no code read it.
+
+**Decision.**
+- **Models.** Turns, maps and image prompts use `OPENAI_MODEL=gpt-5.4-mini` (about a third of the price). Saves use `CHECKPOINT_MODEL=gpt-5.4`, because they decide who knows what.
+- **Usage logging.** Every call's tokens (input, cached, output, reasoning) and estimated cost go to the console and to `openai_usage`.
+- **Budget warnings, never a pause.** A message goes to `#dm-testing` once at 80% and once at 100% of `MONTHLY_BUDGET_USD`.
+- **The world update returns only what the history since the last save touches.** That means new or changed NPCs and places, each complete. Omitted entries are kept by `mergeUpdate`, and memories stay append-only. Player characters are never NPCs.
+- **`CHECKPOINT_MAX_OUTPUT_TOKENS` default lowered from 12000 to 8000.** A save that doesn't fit still fails safely and saves nothing.
+- **Tests from now on use a mocked model by default.** A real call is made only when the change needs one, and said so.
+- **Declined for now:** pausing play at the budget, and trimming the prompt blocks (both cost the DM detail).
+
+**Checked (rolled back; real calls on gpt-5.4 for the world update only).**
+- **Mocked turn:** a usage row on gpt-5.4-mini with the right estimate.
+- **Warnings:** each fires once at 80% and once at 100%, with no repeat.
+- **World update with a made-up scene:**
+  - **The old instruction** returned 12/12 NPCs and 13/13 places in 10,957 tokens ($0.20).
+  - **The first new wording** returned nothing and missed an NPC memory.
+  - **The final wording** returned only the NPC who was spoken to (fact and memory added, old facts kept) and the 2 new places, plus 2 events, in 433–753 tokens ($0.02–0.06). Nothing was lost in the merge.

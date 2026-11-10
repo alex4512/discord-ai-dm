@@ -67,10 +67,21 @@ function loadConfig(env = process.env) {
 
     openai: Object.freeze({
       apiKey: env.OPENAI_API_KEY,
-      model: env.OPENAI_MODEL || 'gpt-4.1-mini',
+      // Turns, maps and image prompts.
+      model: env.OPENAI_MODEL || 'gpt-5.4-mini',
+      // Saves decide who knows what, so they may use a stronger model (D-026).
+      checkpointModel: env.CHECKPOINT_MODEL || env.OPENAI_MODEL || 'gpt-5.4',
       maxOutputTokens: parsePositiveInt(env, 'MAX_OUTPUT_TOKENS', 1200),
-      // Knowledge records grow over a campaign; 3500 truncated one at ~16k chars.
-      checkpointMaxOutputTokens: parsePositiveInt(env, 'CHECKPOINT_MAX_OUTPUT_TOKENS', 12000)
+      // Per save call. Knowledge records grow over a campaign; 3500 truncated
+      // one at ~16k chars. A save that doesn't fit fails and saves nothing.
+      checkpointMaxOutputTokens: parsePositiveInt(env, 'CHECKPOINT_MAX_OUTPUT_TOKENS', 8000)
+    }),
+
+    // Cost logging and warnings (D-026). Warnings only; play never stops.
+    budget: Object.freeze({
+      monthlyUsd: Number(env.MONTHLY_BUDGET_USD) || 0,
+      // Estimate per generated image (gpt-image-1-mini, medium, 1536x1024).
+      imageCostUsd: Number(env.IMAGE_COST_USD) || 0.02
     }),
 
     // Scene images (D-008). Never generated automatically except once per

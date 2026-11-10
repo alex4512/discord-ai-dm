@@ -5,6 +5,7 @@ import { verifySchema } from './db/schema.js';
 import { initializeCampaign } from './services/campaignService.js';
 import { createDiscordClient } from './discord/client.js';
 import { onMessageCreate } from './discord/handlers/messageCreate.js';
+import { setBudgetNotifier } from './services/usage.js';
 
 async function main() {
   await verifySchema();
@@ -18,7 +19,15 @@ async function main() {
 
   client.once(Events.ClientReady, readyClient => {
     console.log(`Dungeon Master online as ${readyClient.user.tag}`);
-    console.log(`OpenAI model: ${config.openai.model}`);
+    console.log(
+      `OpenAI models: turns ${config.openai.model}, saves ${config.openai.checkpointModel}` +
+      (config.budget.monthlyUsd ? `; budget warnings at 80%/100% of $${config.budget.monthlyUsd}/month` : '')
+    );
+    // Budget warnings (D-026) go to #dm-testing; they never stop play.
+    setBudgetNotifier(async text => {
+      const channel = await readyClient.channels.fetch(config.channels.test).catch(() => null);
+      await channel?.send({ content: text, allowedMentions: { parse: [] } });
+    });
   });
 
   client.on(Events.MessageCreate, onMessageCreate);

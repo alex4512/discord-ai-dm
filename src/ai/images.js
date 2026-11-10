@@ -1,6 +1,7 @@
 import { openai } from './openaiClient.js';
 import { IMAGE_PROMPT_INSTRUCTIONS } from './prompts.js';
 import { config } from '../config.js';
+import { recordUsage } from '../services/usage.js';
 
 const MAX_PROMPT_TOKENS = 300;
 
@@ -21,6 +22,7 @@ export async function buildImagePrompt(material) {
     input: [{ role: 'user', content: JSON.stringify(material) }],
     max_output_tokens: MAX_PROMPT_TOKENS
   });
+  await recordUsage({ kind: 'image_prompt', model: config.openai.model, usage: result.usage });
 
   const scene = result.output_text?.trim();
   if (!scene) throw new Error('OpenAI returned no image prompt');
@@ -36,6 +38,7 @@ export async function generateImage(prompt) {
     n: 1,
     output_format: 'jpeg'
   });
+  await recordUsage({ kind: 'image', model: config.images.model, images: 1 });
 
   const b64 = result.data?.[0]?.b64_json;
   if (!b64) throw new Error('Image API returned no image data');

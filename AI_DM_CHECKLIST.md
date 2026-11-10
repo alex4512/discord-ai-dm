@@ -256,12 +256,16 @@ In order, each agreed as a design before building:
 
 Backlog, picked up when needed:
 - **Onboarding step 2** (Milestone 6, D-020): `/player add`, when a new player joins.
-- **Hardening** (Milestone 5): always-on hosting (pm2 proposed 2026-11-10, not wanted for now), scheduled backups, automated tests, graceful restart. Later: safe multi-instance operation, including message ordering (section 6). Cost tracking moves into feature 8.
+- **Hardening** (Milestone 5): always-on hosting (pm2 proposed 2026-11-10, not wanted for now), scheduled backups, automated tests, graceful restart. Later: safe multi-instance operation, including message ordering (section 6). Cost tracking moves into feature 8; its base exists (D-026: usage per call, monthly warnings).
 
 Done 2026-11-10:
 
 - canon correction of Kraavok's origins from the owner's summary, as versions v35/v36 (D-023; method reusable)
 - a briefing in Kraavok's channel that an NPC answered was taken out of play (OPERATIONS.md), and DM rule 22 added so it can't recur (D-024)
+
+- cost controls (D-026): gpt-5.4-mini for play, gpt-5.4 for saves, usage logged per call, budget warnings in `#dm-testing`, saves return only changed NPCs and places
+
+Watch: the first saves after D-026. In the console, `[usage] world_update` should show a small output, and NPCs met in play should gain facts and memories (`/npc show` in `#dm-testing`).
 
 Pending on the owner's side: restart the bot (loads rule 22), then `/checkpoint save` in `#main-adventure`. The save folds play since v32 and the inventory backfill, and compacts Kraavok's knowledge (about 11.6k chars, over the 8k budget). Check it with `/checkpoint show` in `#dm-testing`.
 

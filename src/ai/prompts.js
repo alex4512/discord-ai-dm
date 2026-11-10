@@ -309,9 +309,18 @@ You receive the previous registries (including DM-authored author_notes,
 which are authoritative truth), the most recent chronicle entries, every
 channel's history since the last checkpoint and the DM notes.
 
-npcs and locations: return the COMPLETE registry, i.e. every previous
-entry (unchanged if nothing happened to it) plus any newly introduced in
-play. Use exactly the same name as before.
+npcs and locations: go through every channel's history since the last
+checkpoint, message by message. Return every NPC and every location that
+appears in it or is affected by it (present in a scene, spoken to, talked
+about, visited, given or told something, changed in status or place),
+plus any newly introduced in play: a new place the characters reach or
+hear of is a new location. Return each one complete: all its fields and
+facts as they should now stand, with new facts, known_by and memories
+added. Leave out only entries that the history does not touch at all;
+they are kept as they are. Use exactly the same name as before. Player
+characters are never NPCs: don't return them in npcs.
+Memories already in the previous entry are kept automatically, so list
+only new ones.
 
 NPC fields:
 - role, appearance, personality: only what anyone meeting the NPC would
@@ -329,11 +338,13 @@ NPC fields:
   name. secret = true if the NPC would keep it to themselves in front of
   others (a secret pact, a hidden item, something incriminating, or the
   character asked for discretion); otherwise false.
-  Copy every previous memory verbatim and add new ones; never drop one.
+  Previous memories are kept automatically: list only new ones (re-send
+  an old one only to change its secret flag).
   Backfill: EVERY NPC that has ever dealt with a player character must
   have memories of it. Check each NPC's facts, the chronicle and the DM
   notes (including legacy context); if an NPC has no memory yet of a
-  dealing found there (e.g. a fact "Kraavok rescued Orren"), write it now.
+  dealing found there (e.g. a fact "Kraavok rescued Orren"), write it now
+  (that NPC then counts as changed and is returned).
 
 Location fields:
 - description: what anyone arriving there would perceive. Never mention
