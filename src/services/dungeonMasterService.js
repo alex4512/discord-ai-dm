@@ -26,6 +26,7 @@ import {
   npcsFor,
   readersOf
 } from './audience.js';
+import { chaptersFor, uncoveredChronicle } from './chapters.js';
 
 const SCENE_TAG = /\[\[\s*SCENE\s*:\s*([^\]\n]+?)\s*\]\]/gi;
 
@@ -129,7 +130,9 @@ export async function playTurn({
       locationsFor(state.locations, readers, characterNames, { includeAuthorNotes: true }),
       sceneText
     ),
-    chronicle: chronicleFor(state.chronicle, readers, { limit: TURN_CHRONICLE_LIMIT }),
+    // Old events as chapters, the rest in full (D-032, D-033).
+    chapters: chaptersFor(state.chapters, readers),
+    chronicle: chronicleFor(uncoveredChronicle(state.chronicle, state.chapters), readers, { limit: TURN_CHRONICLE_LIMIT }),
     recentSharedScene: sharedHistory.length
       ? formatSharedTranscript(sharedHistory)
       : null,

@@ -26,6 +26,7 @@ import { foldProgress, withXpLevels } from './progressService.js';
 import { getPrivateChannels } from './roster.js';
 import { foldInventory } from './inventoryService.js';
 import { inventoryFor, inventoryPromptView } from './loot.js';
+import { compactIfDue } from './chapters.js';
 
 /** Previous size vs budget for one record (D-017). */
 function sizeBudget(record, previousValue) {
@@ -218,6 +219,8 @@ export async function saveCheckpoint({ guildId, authorId }) {
     worldTask
   ]);
 
+  const chronicle = appendChronicle(previous.chronicle, world.events, state.version + 1);
+
   const snapshot = {
     checkpoint,
     character_knowledge: {
@@ -227,9 +230,11 @@ export async function saveCheckpoint({ guildId, authorId }) {
     dm_notes: dmNotes,
     npcs: mergeUpdate(previous.npcs, world.npcs),
     locations: mergeUpdate(previous.locations, world.locations),
-    chronicle: appendChronicle(previous.chronicle, world.events, state.version + 1),
+    chronicle,
     progress,
-    inventory
+    inventory,
+    // Old events become chapters once the chronicle is long (D-033).
+    chapters: await compactIfDue(previous.chapters, chronicle)
   };
 
   const { version } = await withGuildTransaction(guildId, async db => {

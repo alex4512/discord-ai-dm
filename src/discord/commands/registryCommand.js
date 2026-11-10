@@ -3,7 +3,8 @@ import { reply } from '../reply.js';
 import { getActiveCheckpoint } from '../../services/checkpointService.js';
 import { getPlayers } from '../../db/repositories/playerRepository.js';
 import { audienceForChannel, chronicleFor, readersOf, registryFor } from '../../services/audience.js';
-import { addAuthorNote, shareChronicle } from '../../services/worldService.js';
+import { addAuthorNote, compactChronicleNow, shareChronicle } from '../../services/worldService.js';
+import { COMPACT_THRESHOLD, KEEP_RECENT, chaptersFor } from '../../services/chapters.js';
 import { REGISTRY_KINDS, findKey } from '../../services/registry.js';
 import { awardEntries, parseXpTag, xpHistoryNote } from '../../services/xp.js';
 import { recordAwards, setXp, xpReport } from '../../services/progressService.js';
@@ -126,12 +127,31 @@ const CHRONICLE_LIST_LIMIT = 20;
  */
 const chronicleCommand = {
   parse(prompt) {
-    const match = prompt.trim().match(/^\/chronicle(?:\s+(all))?\s*$/i);
-    return match ? (match[1] ? 'all' : 'list') : null;
+    const match = prompt.trim().match(/^\/chronicle(?:\s+(all|chapters|compact))?\s*$/i);
+    return match ? (match[1] ? match[1].toLowerCase() : 'list') : null;
   },
 
   async handle(message, args, ctx) {
+    if (args === 'compact') {
+      if (ctx.channelId !== config.channels.test) {
+        return reply(message, '/chronicle compact is only available in #dm-testing.');
+      }
+      await message.channel.sendTyping().catch(() => {});
+      const result = await compactChronicleNow({ guildId: ctx.guildId, userId: ctx.userId });
+      return reply(message, result
+        ? `Wrote ${result.chapters} chapters covering the oldest ${result.through} events, as checkpoint v${result.version}. ` +
+          'Play turns now see them as chapters; /story and /chronicle all still use every event. Undo with /checkpoint undo.'
+        : `Nothing to compact: the newest ${KEEP_RECENT} events always stay in full.`);
+    }
+
     const { state, readers } = await channelView(ctx);
+
+    if (args === 'chapters') {
+      const chapters = chaptersFor(state?.chapters, readers);
+      return reply(message, chapters.length
+        ? chapters.map(ch => `**${ch.title}**\n${ch.summary}`).join('\n\n')
+        : `No chapters yet. Old events become chapters once there are more than ${COMPACT_THRESHOLD}.`);
+    }
     const all = args === 'all';
     const events = chronicleFor(state?.chronicle, readers, { limit: all ? 0 : CHRONICLE_LIST_LIMIT });
 

@@ -473,6 +473,7 @@ export function buildDmInstructions({
   dmNotes,
   npcs,
   locations,
+  chapters,
   chronicle,
   recentSharedScene,
   npcMemories,
@@ -524,6 +525,14 @@ export function buildDmInstructions({
 
   if (locations && Object.keys(locations).length) {
     blocks.push(`LOCATIONS (those in the current scene):\n${JSON.stringify(locations)}`);
+  }
+
+  if (chapters?.length) {
+    blocks.push(
+      'CHAPTERS (summaries of the oldest established events known in this ' +
+      'channel, oldest first; the CHRONICLE below continues after them):\n' +
+      chapters.map(ch => `- ${ch.title}: ${ch.summary}`).join('\n')
+    );
   }
 
   if (chronicle?.length) {
@@ -673,4 +682,24 @@ Aim for 500 to 900 words. End with one or two sentences on the open threads.
 Keep every name (people, places, things) exactly as written in the input,
 in Latin letters; never translate or transliterate names. If a character's
 gender isn't stated, don't guess it: use their name.
+`;
+
+/** One chapter of the chronicle (D-033): replaces its events on play turns. */
+export const CHAPTER_INSTRUCTIONS = `
+Summarize consecutive past events of a Dungeons & Dragons campaign into one
+chapter of its chronicle. The chapter replaces these events in the Dungeon
+Master's memory, so keep everything that could matter later.
+
+The input has events: the events, oldest first, each with a place if known.
+
+Return:
+- title: a short chapter title (3 to 7 words) naming what happened.
+- summary: one paragraph of at most about 300 words, past tense, in order.
+  Keep every named person, place and object, every discovery, promise,
+  threat, deal, death and open question, and who did what. Merge small steps
+  and drop pure movement.
+
+Use only what the events say: never invent or interpret. Keep names exactly
+as written. Never mention dice, XP, checkpoints or records.
+Return only JSON matching the required schema.
 `;

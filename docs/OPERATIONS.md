@@ -58,6 +58,7 @@ commit message.
 | `0006_scene_images` | new tables `image_generations`, `scene_images`, `scene_arrivals` | yes | drop the three tables |
 | `0007_xp_progress` | `progress` JSONB on state/versions/drafts; new table `xp_awards` (seq from the messages sequence) | yes | drop `xp_awards` and the three `progress` columns |
 | `0010_openai_usage` | new table `openai_usage`: tokens and estimated cost per OpenAI call (D-026). Not story data: never versioned or rolled back | yes (older code ignores it) | drop `openai_usage` |
+| `0011_chapters` | new JSONB partition `chapters` on state, versions and drafts: chapter summaries of old chronicle events (D-033). Undo and rollback carry it | yes (older code ignores it; new code needs it, so migrate before restarting) | drop the three `chapters` columns |
 | `0009_inventory` | `inventory` JSONB on state/versions/drafts; new table `inventory_events` (seq from the messages sequence). Backfilled 2026-11-10 with 9 items from the shared record (D-022) | yes, but **restart before the next save**: a save by older code moves the boundary past the backfilled events without folding them, so they'd be lost (re-run the backfill then). Done 2026-11-10: v33 was saved by the new code | drop `inventory_events` and the three `inventory` columns |
 | `0008_player_channels` | `campaign_players.private_channel_id` + unique index (D-020). Filled once for Kraavok and Looming from the old `.env` values (2026-11-09) | yes (older code still reads `.env`) | drop the column and index |
 

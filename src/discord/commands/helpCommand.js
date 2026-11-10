@@ -18,7 +18,7 @@ const HELP = [
   { where: ['shared', 'dm'], cmd: '/checkpoint versions', en: 'list the saves', gr: 'λίστα αποθηκεύσεων' },
   { where: ['character'], en: 'Saving, undo and rollback are done in #main-adventure.', gr: 'Αποθήκευση, αναίρεση και επιστροφή γίνονται στο #main-adventure.' },
   { where: ALL, cmd: '/checkpoint show', en: 'the saved story, as this channel may see it', gr: 'η αποθηκευμένη ιστορία, όσο επιτρέπεται εδώ' },
-  { where: ALL, cmd: '/chronicle', en: 'recent events (/chronicle all: every event from the beginning)', gr: 'πρόσφατα γεγονότα (/chronicle all: όλα από την αρχή)' },
+  { where: ALL, cmd: '/chronicle', en: 'recent events (/chronicle all: every event from the beginning; /chronicle chapters: the summarized older chapters)', gr: 'πρόσφατα γεγονότα (/chronicle all: όλα από την αρχή· /chronicle chapters: τα παλιότερα σε κεφάλαια)' },
   { where: ['shared'], cmd: '/story [gr]', en: 'your character tells the group the whole story so far; everyone knows it from then on', gr: 'ο χαρακτήρας σου λέει στην ομάδα όλη την ιστορία ως τώρα· από εκεί και πέρα την ξέρουν όλοι' },
   { where: ['character'], cmd: '/story [gr]', en: 'your whole story so far, private to you', gr: 'όλη η ιστορία σου ως τώρα, μόνο για σένα' },
   { where: ['dm'], cmd: '/story [gr] [character]', en: "the party's shared story, or one character's", gr: 'η κοινή ιστορία της ομάδας, ή ενός χαρακτήρα' },
@@ -36,7 +36,8 @@ const HELP = [
   { section: { en: 'DM tools (#dm-testing)', gr: 'Εργαλεία DM (#dm-testing)' }, where: ['dm'] },
   { where: ['dm'], cmd: '/npc note <name>: <text>', en: 'add DM truth to an NPC (/location note the same)', gr: 'αλήθεια του DM για έναν NPC (το ίδιο /location note)' },
   { where: ['dm'], cmd: '/xp set <character> <total>', en: 'set XP (/xp help: award by hand)', gr: 'ορισμός XP (/xp help: απονομή με το χέρι)' },
-  { where: ['dm'], cmd: '/inventory <changes>', en: 'correct the inventory (/inventory help)', gr: 'διόρθωση αντικειμένων (/inventory help)' }
+  { where: ['dm'], cmd: '/inventory <changes>', en: 'correct the inventory (/inventory help)', gr: 'διόρθωση αντικειμένων (/inventory help)' },
+  { where: ['dm'], cmd: '/chronicle compact', en: 'summarize old events into chapters now (otherwise automatic at save past 250)', gr: 'σύνοψη παλιών γεγονότων σε κεφάλαια τώρα (αλλιώς αυτόματα στο save πάνω από 250)' }
 ];
 
 const FOOTER = {

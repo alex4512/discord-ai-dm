@@ -876,3 +876,20 @@ If B feels thin after a session, change `OPENAI_MODEL=gpt-5.6-terra` and add its
 **Later.** When the chronicle nears 400 events, the oldest drop out of turns again. Before then, compact old events into chapter summaries (backlog).
 
 **Checked.** A rolled-back Looming turn asking what Kraavok told the group named Edric, Mara, the crypt, Mother Vael, Orren, Voss, the evacuation and the fragment (before: only "the First Bell").
+
+## D-033: Chapter summaries of old chronicle events
+
+**Date:** 2026-11-10 · **Status:** accepted (owner) · **Code:** `src/services/chapters.js`, `generateChapter` in `src/ai/dungeonMaster.js`, `CHAPTER_INSTRUCTIONS` in `src/ai/prompts.js`, migration `0011_chapters`
+
+**Context.** D-032 shows play turns the whole chronicle, up to 400 events. The chronicle grows by dozens of events per play day, so turns would get slower and, past 400, forget the oldest events again.
+
+**Decision.**
+
+- New snapshot partition `chapters`: `{ through, list: [{ title, summary, known_by, from, to }] }`. Chronicle entries before `through` are covered by chapters.
+- **When:** at save, once more than 250 events are uncovered (`COMPACT_THRESHOLD`), everything but the newest 150 (`KEEP_RECENT`) becomes chapters. A failed compaction never fails the save; the old chapters are kept. `/chronicle compact` in #dm-testing does it now, below the threshold, as a new checkpoint version.
+- **Secrecy:** events are grouped by their exact known_by set, and each group gets its own chapters of about 32 events, so a chapter is readable by exactly the characters who know its events. `/story` sharing in main (D-031) shares the teller's chapters too.
+- **Turns** show CHAPTERS (the readable ones) before the CHRONICLE, which continues from `through`.
+- **Nothing is lost:** the chronicle is never shortened. `/story`, `/chronicle all` and saves still read the events. `/chronicle chapters` lists the chapters a channel may read.
+- Chapters are written by the save model (gpt-5.4), one call per chapter, about $0.01 each.
+
+**Checked.** Mocked tests (planning, one audience per chapter, Looming never sees Kraavok-only chapters, sharing, failure keeps old chapters, turn prompt), the partition through the real state/version SQL (rolled back), and one real chapter of the 23 oldest events: 301 words, every name, discovery and open thread kept, $0.009.

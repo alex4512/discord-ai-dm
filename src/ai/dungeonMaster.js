@@ -6,6 +6,7 @@ import {
   worldUpdateSchema
 } from './checkpointSchema.js';
 import {
+  CHAPTER_INSTRUCTIONS,
   CHARACTER_KNOWLEDGE_INSTRUCTIONS,
   CHECKPOINT_INSTRUCTIONS,
   DM_NOTES_INSTRUCTIONS,
@@ -236,6 +237,23 @@ export async function generateStory({ context, lang = 'en' }) {
   });
   await recordUsage({ kind: 'story', model, usage: result.usage });
   return result.output_text?.trim() || EMPTY_RESPONSE;
+}
+
+const chapterSchema = {
+  type: 'object',
+  additionalProperties: false,
+  properties: { title: { type: 'string' }, summary: { type: 'string' } },
+  required: ['title', 'summary']
+};
+
+/** One chapter summary of consecutive chronicle events (D-033), on the save model. */
+export function generateChapter(context) {
+  return generateStructured({
+    name: 'chronicle_chapter',
+    schema: chapterSchema,
+    instructions: CHAPTER_INSTRUCTIONS,
+    context
+  });
 }
 
 /**

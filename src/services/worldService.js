@@ -1,6 +1,36 @@
 import { UserFacingError } from '../errors/UserFacingError.js';
-import { amendActiveSnapshot } from './checkpointService.js';
+import { amendActiveSnapshot, getActiveCheckpoint } from './checkpointService.js';
 import { REGISTRY_KINDS, appendChronicle, findKey, mergeSeed } from './registry.js';
+import { planCompaction, shareChapters, writeChapters } from './chapters.js';
+
+/**
+ * `/chronicle compact` (D-033): summarizes everything but the newest
+ * KEEP_RECENT events now, below the automatic threshold. The model calls run
+ * first; the new version is written only if the chronicle and chapters did
+ * not change meanwhile. Returns { version, chapters } or null if nothing to do.
+ */
+export async function compactChronicleNow({ guildId, userId }) {
+  const state = await getActiveCheckpoint(guildId);
+  if (!state) throw new UserFacingError('Save a first checkpoint first.');
+  const plan = planCompaction(state.chronicle, state.chapters, { force: true });
+  if (!plan) return null;
+
+  const next = await writeChapters(state.chapters, plan);
+  const { version } = await amendActiveSnapshot({
+    guildId,
+    userId,
+    reason: `chronicle compacted into ${plan.chunks.length} chapters`,
+    mutate: snapshot => {
+      if (snapshot.chronicle.length !== state.chronicle.length ||
+          (snapshot.chapters?.through || 0) !== (state.chapters?.through || 0)) {
+        throw new UserFacingError('The chronicle changed while compacting (a save?). Try again.');
+      }
+      snapshot.chapters = next;
+      return snapshot;
+    }
+  });
+  return { version, chapters: plan.chunks.length, through: plan.through };
+}
 
 /**
  * Adds DM-authored truth to an NPC or location (creating it if new) as a
@@ -52,6 +82,8 @@ export async function shareChronicle({ guildId, userId, teller, listeners }) {
         shared++;
         return { ...entry, known_by: [...knownBy, ...missing] };
       });
+      // Chapters summarizing those events are shared the same way (D-033).
+      snapshot.chapters = shareChapters(snapshot.chapters, teller, listeners);
       return snapshot;
     }
   });

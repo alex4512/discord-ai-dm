@@ -10,7 +10,8 @@ export const PARTITIONS = Object.freeze([
   'locations',
   'chronicle',
   'progress',
-  'inventory'
+  'inventory',
+  'chapters'
 ]);
 
 // Value used when a row predates a partition (column is NULL).
@@ -22,7 +23,8 @@ export const PARTITION_DEFAULTS = Object.freeze({
   locations: {},
   chronicle: [],
   progress: {},
-  inventory: { party: {}, characters: {} }
+  inventory: { party: {}, characters: {} },
+  chapters: { through: 0, list: [] }
 });
 
 /** The partitions of a state/draft/version row, NULLs replaced by defaults. */
