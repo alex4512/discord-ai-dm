@@ -701,3 +701,18 @@ reused.
 - **Kraavok's private channel:** the DM knows the added origin points, and the secret items show in its inventory.
 - **Main:** NPCs recall shared past events; the public "how Kraavok comes across" line is there; no secret items or private names.
 - **Looming's prompt:** none of the Kraavok-only names or items, except what the DM said aloud in main, which is public by design (D-010).
+
+## D-024: Briefings to the DM are out of character, even unmarked
+
+**Date:** 2026-11-10 · **Status:** accepted (owner) · **Code:** DM rule 22 (`src/ai/prompts.js`)
+
+**Context.** The owner briefed the DM on past events in his private channel without `(OOC)`. A private channel is the character's own view of the current scene, and the shared record placed Brann, Derren and Ash in the room (rule 17). So the DM read the briefing as Kraavok telling the story aloud, and the NPCs reacted. The next save would have recorded that they heard all of it.
+
+**Decision.**
+- **DM rule 22:** a message addressed to the DM about the game counts as out of character even without the mark. That covers a recap or briefing, "here's what happened", a correction, or a question about rules or records.
+  - NPCs never hear it, and nothing happens in the scene.
+  - The DM acknowledges it briefly.
+  - Only words the character says in the scene are heard by those present; when unsure, the DM asks.
+- **The two messages of that briefing were moved to an archive timeline** (kept, not used), as a rollback would. Backup: `dnd_campaign_pre-archive-briefing_20261110-074025.dump`. The briefing's content was already added as canon (D-023).
+
+**Checked (real DM, rolled back).** Three unmarked briefings (English, Greek, "just so you have it as DM") got short out-of-character acknowledgements with no NPC reaction. Kraavok speaking aloud to Brann still got Brann's answer.
