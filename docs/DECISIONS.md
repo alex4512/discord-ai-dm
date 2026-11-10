@@ -789,3 +789,29 @@ reused.
   - "search the drawers… I use Perception" got "…is Intelligence (Investigation), not Perception: roll Investigation" (in English, and in Greek for a lock).
   - "stand watch… Perception?" was accepted.
   - No dice were rolled for the player in any case.
+
+## D-028: A narration style rule for the DM
+
+**Date:** 2026-11-10 · **Status:** accepted (owner) · **Code:** DM rules in `src/ai/prompts.js`
+
+**Context.** After the switch to gpt-5.4-mini (D-026) play got fast, but the narration got thin. The DM rules said nothing about style or length, and gpt-5.4 had been rich on its own.
+
+**Decision.** Add a narration style rule, and keep `OPENAI_MODEL=gpt-5.4-mini`.
+- **On a scene change, or when something new comes into view:** two or three short paragraphs with sensory detail, what the NPCs are doing and how they speak, and one or two details worth interacting with.
+- **Quick exchanges:** a few sentences. OOC answers stay brief.
+- **Always:** no padding, never decide for the players, and end on what they can act on.
+
+**Compared (same main-adventure turn, rolled back; samples shown to the owner).**
+
+| Variant | Words | Cost per turn |
+| --- | --- | --- |
+| A. mini as before | 160 | about $0.01 |
+| B. mini with the rule (chosen) | 205 | about $0.01, the same |
+| C. gpt-5.6-luna with the rule | 112 | cheapest, plain |
+| D. gpt-5.6-terra with the rule | 132 | about 3x |
+
+- **A** was list-like.
+- **B** had atmospheric sensory detail.
+- **D** was the most evocative and asked for a check on its own.
+
+If B feels thin after a session, change `OPENAI_MODEL=gpt-5.6-terra` and add its price to `src/services/usage.js`.
