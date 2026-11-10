@@ -62,6 +62,7 @@
 - [x] Private channels see `#main-adventure` play since the last save, so a meeting is known before anyone saves (D-010)
 - [x] Other characters' class and level hidden outside `#dm-testing` (D-010)
 - [x] The checkpoint scene decides who is present (DM rule 17); DM-authored scene setups via `amendActiveSnapshot`
+- [x] Briefings to the DM are out of character even without `(OOC)`: NPCs never hear them (DM rule 22, D-024)
 - [x] Make checkpoint previews / `show` safe for shared-channel visibility (D-002)
 - [x] Looming Shade's first private session: own knowledge record created, nothing leaked to Kraavok or main (live, 2026-11-09)
 - ⚠️ Test: Looming discovers a clue that Kraavok does not know — not yet checked explicitly
@@ -238,7 +239,7 @@ Adopted 2026-11-10 (D-021). Each feature still gets its own design agreed with t
 
 - [x] Database-driven roster and private channels; no hard-coded characters (D-020 step 1)
 - [ ] `/player add` with channel creation, guided introduction and story entry
-- [ ] Player guides (English, Greek)
+- [ ] Player guides (English, Greek): the Greek session guide exists (`docs/SESSION_GUIDE_GR.md`); there's no English player guide yet, and the DM can't answer questions about the bot's commands (only `help` subcommands and the guides can)
 
 ## Next Steps
 
@@ -256,7 +257,12 @@ Backlog, picked up when needed:
 - **Onboarding step 2** (Milestone 6, D-020): `/player add`, when a new player joins.
 - **Hardening** (Milestone 5): always-on hosting (pm2 proposed 2026-11-10, not wanted for now), scheduled backups, automated tests, graceful restart. Later: safe multi-instance operation, including message ordering (section 6). Cost tracking moves into feature 8.
 
-Done 2026-11-10: canon correction of Kraavok's origins from the owner's summary, as versions v35/v36 (D-023; method reusable).
+Done 2026-11-10:
+
+- canon correction of Kraavok's origins from the owner's summary, as versions v35/v36 (D-023; method reusable)
+- a briefing in Kraavok's channel that an NPC answered was taken out of play (OPERATIONS.md), and DM rule 22 added so it can't recur (D-024)
+
+Pending on the owner's side: restart the bot (loads rule 22), then `/checkpoint save` in `#main-adventure`. The save folds play since v32 and the inventory backfill, and compacts Kraavok's knowledge (about 11.6k chars, over the 8k budget). Check it with `/checkpoint show` in `#dm-testing`.
 
 Smaller open items (carried over from the MVP):
 - verify in live play that the watchtower meeting reached the shared record

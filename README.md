@@ -34,6 +34,17 @@ told to retry.
 - **#dm-testing**: diagnostics only. Nothing is persisted and checkpoint
   commands are read-only.
 
+**Out of character (D-024).** A message marked `(OOC)`, or one addressed
+to the DM about the game (a recap or briefing, a correction, a rules
+question), is answered briefly by the DM. NPCs never hear it and the scene
+doesn't move. Only what a character says in the scene is heard by those
+present.
+
+**Help.** `/checkpoint help`, `/xp help` and `/inventory help` list their
+commands. The DM itself doesn't know the bot's commands, so asking it "what
+can you do?" gives an unreliable answer. Players learn the commands from
+this README or the Greek guide ([docs/SESSION_GUIDE_GR.md](docs/SESSION_GUIDE_GR.md)).
+
 ### Checkpoint commands
 
 A checkpoint has three parts, each shown only where its audience can

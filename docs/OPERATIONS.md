@@ -57,7 +57,7 @@ commit message.
 | `0005_locations_chronicle` | `locations`, `chronicle` on state, versions, drafts | yes | restore backup, or drop the added columns |
 | `0006_scene_images` | new tables `image_generations`, `scene_images`, `scene_arrivals` | yes | drop the three tables |
 | `0007_xp_progress` | `progress` JSONB on state/versions/drafts; new table `xp_awards` (seq from the messages sequence) | yes | drop `xp_awards` and the three `progress` columns |
-| `0009_inventory` | `inventory` JSONB on state/versions/drafts; new table `inventory_events` (seq from the messages sequence). Backfilled 2026-11-10 with 9 items from the shared record (D-022) | yes, but **restart before the next save**: a save by older code moves the boundary past the backfilled events without folding them, so they'd be lost (re-run the backfill then) | drop `inventory_events` and the three `inventory` columns |
+| `0009_inventory` | `inventory` JSONB on state/versions/drafts; new table `inventory_events` (seq from the messages sequence). Backfilled 2026-11-10 with 9 items from the shared record (D-022) | yes, but **restart before the next save**: a save by older code moves the boundary past the backfilled events without folding them, so they'd be lost (re-run the backfill then). Done 2026-11-10: v33 was saved by the new code | drop `inventory_events` and the three `inventory` columns |
 | `0008_player_channels` | `campaign_players.private_channel_id` + unique index (D-020). Filled once for Kraavok and Looming from the old `.env` values (2026-11-09) | yes (older code still reads `.env`) | drop the column and index |
 
 Commits that add no migration (for example the D-004 prompt change) only
@@ -105,6 +105,27 @@ private play happened.
 Then fix the cause (see [DECISIONS.md](DECISIONS.md) D-004 revision for the
 2026-11-09 incident) and replay the scene. Leaks in a private channel only
 reach that channel's owner. Roll back there too if the owner shouldn't know.
+
+### A few messages should never have happened (since the last save)
+
+Example: a briefing to the DM that an NPC answered in character (D-024,
+2026-11-10). When the messages are after the boundary and nothing else
+depends on them, take just those out of play instead of rolling back.
+Take a backup first, then move them to a fresh, unused timeline:
+
+```sql
+-- check first: the rows, plus any xp_awards / inventory_events with the same seq range
+UPDATE public.messages SET timeline_id = gen_random_uuid()
+ WHERE guild_id = '<guild id>' AND seq IN (<seq>, <seq>);
+```
+
+They stay stored but leave the history, the next save and every prompt.
+If an XP award or loot event came with them, move or delete it the same
+way. Deleting the messages in Discord is optional: it only tidies what
+people see, since the bot reads its own database.
+
+Wrong facts already in a saved version are corrected differently: a new
+version on the same timeline with `amendActiveSnapshot` (D-023).
 
 ### Bad deploy (bot crashes or misbehaves after an upgrade)
 
