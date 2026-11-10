@@ -66,7 +66,7 @@ export async function addAuthorNote({ kind, guildId, userId, name, note }) {
  * every chronicle event `teller` knows becomes known by `listeners` too, as
  * a new checkpoint version (undoable). Returns { version, shared }.
  */
-export async function shareChronicle({ guildId, userId, teller, listeners }) {
+export async function shareChronicle({ guildId, userId, teller, listeners, backstory = '', version: eventVersion = null }) {
   const norm = n => String(n).trim().toLowerCase();
   let shared = 0;
   const { version } = await amendActiveSnapshot({
@@ -84,6 +84,14 @@ export async function shareChronicle({ guildId, userId, teller, listeners }) {
       });
       // Chapters summarizing those events are shared the same way (D-033).
       snapshot.chapters = shareChapters(snapshot.chapters, teller, listeners);
+      // The teller's past lives in private knowledge, not in events: what
+      // the story told of it becomes one shared event.
+      if (backstory.trim()) {
+        snapshot.chronicle = appendChronicle(snapshot.chronicle, [{
+          event: `${teller} told the group about their past: ${backstory.trim()}`,
+          known_by: listeners
+        }], eventVersion);
+      }
       return snapshot;
     }
   });

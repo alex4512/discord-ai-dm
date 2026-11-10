@@ -210,11 +210,13 @@ const storyCommand = {
     const cp = state?.checkpoint || {};
 
     await message.channel.sendTyping().catch(() => {});
-    const story = await generateStory({
+    const { story, backstory } = await generateStory({
       lang,
       context: {
         teller,
         origin,
+        // The teller's own past is only in their private knowledge (D-031).
+        personal_knowledge: teller ? state?.character_knowledge?.[teller] || null : null,
         events: events.map(e => ({ event: e.event, location: e.location || null })),
         current_situation: { location: cp.location || null, scene: cp.scene || null },
         focus: named || teller
@@ -236,9 +238,11 @@ const storyCommand = {
         guildId: ctx.guildId,
         userId: ctx.userId,
         teller,
-        listeners: names
+        listeners: names,
+        backstory,
+        version: state.version + 1
       });
-      console.log(`[story] ${teller} told the group: ${shared} events now shared (v${version})`);
+      console.log(`[story] ${teller} told the group: ${shared} events now shared${backstory ? ', backstory added' : ''} (v${version})`);
     }
 
     const header = teller ? `📜 **${teller}: the story so far**` : '📜 **The story so far**';

@@ -667,13 +667,17 @@ Dungeon Master telling it at the table.
 The input has:
 - teller: the character whose knowledge this is, or null for the events the
   whole party shares.
-- origin: that character's background before the campaign, if any.
+- origin: the teller's saved state from before the campaign moved here, if any.
+- personal_knowledge: the teller's private notes. Use ONLY the items about
+  the teller's own life before the campaign (homeland, people, tribe, family,
+  what drove them out, inner powers or vows); ignore everything else in it.
 - events: every recorded event this teller knows, oldest first.
 - current_situation: where things stand now.
 - focus: a character to centre the story on, if any.
 
-Write it as flowing prose in the past tense, from the beginning (the origin,
-if given) through the events in order to the current situation. Group events
+Write it as flowing prose in the past tense, from the beginning (the
+teller's past before the campaign, if any, then the origin) through the
+events in order to the current situation. Group events
 into a few short sections with bold headings (e.g. by place or chapter).
 Keep every important person, place, discovery, fight and decision; merge
 small steps. Use only what the input says: never invent events, motives or
@@ -682,6 +686,18 @@ Aim for 500 to 900 words. End with one or two sentences on the open threads.
 Keep every name (people, places, things) exactly as written in the input,
 in Latin letters; never translate or transliterate names. If a character's
 gender isn't stated, don't guess it: use their name.
+
+Return JSON:
+- story: the story, as described above.
+- backstory: in English, one to three plain sentences stating the facts
+  from personal_knowledge about the teller's life BEFORE they first came to
+  the places in the events (e.g. "Kraavok's tribe was destroyed; he is
+  guided by an inner primal force he calls Kraark."). Nothing from origin
+  or events belongs here: those are the adventure, not the backstory.
+  Empty string if personal_knowledge has no such facts.
+
+The past before the adventure is told in-world ("Before he came to
+Dunmere, ..."), never as "before the campaign" or "before the story".
 `;
 
 /** One chapter of the chronicle (D-033): replaces its events on play turns. */

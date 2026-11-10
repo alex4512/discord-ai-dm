@@ -863,6 +863,8 @@ If B feels thin after a session, change `OPENAI_MODEL=gpt-5.6-terra` and add its
 
 **Fixed the same day.** The first real telling showed that storing the story was not enough: the save turned it into one shared event listing names, and the 28 detailed events stayed Kraavok-only (the chronicle is append-only), so Looming's DM knew nothing about the bell. Now the events themselves are shared. Applied once by hand for that telling (v43; v44 is an empty duplicate).
 
+**Backstory (same day).** A character's past before the adventure lives only in their private knowledge, not in the events, so /story left it out. Now /story also gets the teller's private knowledge and tells the pre-adventure facts first. The model returns them separately as a short English `backstory`; in main, `shareChronicle` adds it as one shared event ("X told the group about their past: ..."). Tested on a separate fake guild (shareChronicle commits), plus one real Kraavok story in #dm-testing: the backstory line held only the tribe and Kraark.
+
 ## D-032: Play turns see the whole chronicle
 
 **Date:** 2026-11-10 · **Status:** accepted (owner) · **Code:** `TURN_CHRONICLE_LIMIT` in `src/services/audience.js`, used in `src/services/dungeonMasterService.js`

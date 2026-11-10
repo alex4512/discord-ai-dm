@@ -19,7 +19,6 @@ import { config } from '../config.js';
 import { rollDice } from '../services/dice.js';
 import { recordUsage } from '../services/usage.js';
 
-const STORY_MAX_OUTPUT_TOKENS = 4000;
 const EMPTY_RESPONSE = 'The Dungeon Master did not generate a response.';
 
 // Monster/NPC dice (D-013): the model requests rolls, the code rolls them.
@@ -222,21 +221,28 @@ export function generateSceneMap(context) {
   });
 }
 
+const storySchema = {
+  type: 'object',
+  additionalProperties: false,
+  properties: { story: { type: 'string' }, backstory: { type: 'string' } },
+  required: ['story', 'backstory']
+};
+
 /**
- * The story so far for /story (D-031). Plain prose on the turn model.
- * `lang` is 'gr' for Greek, otherwise English.
+ * The story so far for /story (D-031) on the turn model. Returns
+ * { story, backstory }: backstory states the teller's pre-campaign past the
+ * story told, in English, or ''. `lang` 'gr' writes the story in Greek.
  */
 export async function generateStory({ context, lang = 'en' }) {
-  const model = config.openai.model;
   const language = lang === 'gr' ? 'Greek' : 'English';
-  const result = await openai.responses.create({
-    model,
-    instructions: `${STORY_INSTRUCTIONS}\nWrite it in ${language}.`,
-    input: [{ role: 'user', content: JSON.stringify(context) }],
-    max_output_tokens: STORY_MAX_OUTPUT_TOKENS
+  const out = await generateStructured({
+    name: 'story',
+    schema: storySchema,
+    instructions: `${STORY_INSTRUCTIONS}\nWrite the story in ${language}.`,
+    context,
+    model: config.openai.model
   });
-  await recordUsage({ kind: 'story', model, usage: result.usage });
-  return result.output_text?.trim() || EMPTY_RESPONSE;
+  return { story: out.story?.trim() || EMPTY_RESPONSE, backstory: out.backstory?.trim() || '' };
 }
 
 const chapterSchema = {
