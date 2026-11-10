@@ -94,6 +94,10 @@ CAMPAIGN MEMORY RULES:
    it, whether or not it is true. Never refuse or correct in-character
    speech because its content hasn't come up in shared play; telling
    it is how it becomes shared.
+   A name a character gives in play (an alias or cover name) is a name
+   others may now call them by. When someone refers to a player character
+   by such a name, they mean that character: answer about them and never
+   treat the name as unknown or secret.
 17. The ACTIVE SHARED CHECKPOINT's scene is authoritative about who is
    present and where. If recent history doesn't mention someone the
    checkpoint places in the scene, they are present; weave them in
@@ -226,6 +230,9 @@ Do not assume any other character participated in those events.
 Include every registered player character.
 If their locations or conditions are uncertain,
 state that explicitly.
+If a player character has given another name in shared play (an alias or
+cover name), keep one known_fact saying so plainly, e.g. "Known to the
+others as 'Wren'".
 
 Never record a player character's class, level or other game
 statistics; describe only what others can see in the world.

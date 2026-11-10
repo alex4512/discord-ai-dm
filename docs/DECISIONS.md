@@ -815,3 +815,16 @@ reused.
 - **D** was the most evocative and asked for a check on its own.
 
 If B feels thin after a session, change `OPENAI_MODEL=gpt-5.6-terra` and add its price to `src/services/usage.js`.
+
+## D-029: Player characters' aliases are public names
+
+**Date:** 2026-11-10 · **Status:** accepted (fix) · **Code:** DM rule 16 and the shared checkpoint instructions in `src/ai/prompts.js`
+
+**Context.** A player character gave a cover name in shared play, and the other player kept using it. Asked about the character by that name in the main channel, the DM (gpt-5.4-mini) said the name "hadn't appeared publicly" and treated it as a secret. The save had stored it vaguely ("gave the name X during conversation"), and rule 12 (a shared channel only sees what everyone may know) pushed the model towards caution.
+
+**Decision.**
+
+- Rule 16 now says a name a character gives in play is a name others may call them by. A reference by that name means that character; never treat it as unknown or secret.
+- The shared checkpoint keeps one plain known_fact per alias ("Known to the others as 'X'").
+
+**Checked.** The same question replayed in the main channel (rolled back) was answered about the right character.
