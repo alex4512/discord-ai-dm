@@ -59,7 +59,26 @@ const ROLL_DICE_TOOL = {
 
 const MAX_TOOL_ROUNDS = 3;
 
-function runRollCall(call) {
+const escapeRegExp = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+// Words that make the character the target, not the roller: "Goblin attack vs Kraavok".
+const TARGET_WORDS = /\b(vs\.?|versus|against|on|at|to|targets?|targeting|hits?)\b/i;
+
+/**
+ * True if a roll label is a player character's own roll (their check, save,
+ * attack or damage). Players roll their own dice (D-013, D-027), so these are
+ * refused in code. A character named only as the target is fine.
+ */
+export function isPlayerRoll(label, playerNames = []) {
+  for (const name of playerNames) {
+    const first = name.split(/\s+/)[0];
+    const pattern = new RegExp(`\\b(${escapeRegExp(name)}|${escapeRegExp(first)})\\b`, 'i');
+    const match = pattern.exec(label || '');
+    if (match && !TARGET_WORDS.test(label.slice(0, match.index))) return true;
+  }
+  return false;
+}
+
+function runRollCall(call, playerNames) {
   let requested = [];
   try {
     requested = JSON.parse(call.arguments).rolls || [];
@@ -68,6 +87,14 @@ function runRollCall(call) {
   }
 
   return requested.map(({ label, dice }) => {
+    if (isPlayerRoll(label, playerNames)) {
+      return {
+        label,
+        refused: true,
+        error: 'Not rolled: that is a player character\'s roll. Players roll their own dice. ' +
+          'Ask the player for this roll (ability and skill, and the DC if relevant) and wait for their result.'
+      };
+    }
     try {
       return { label, ...rollDice(dice) };
     } catch (error) {
@@ -81,7 +108,7 @@ function runRollCall(call) {
  * and NPCs; each call is rolled here and fed back before it narrates.
  * Returns `{ id, text, rolls }`.
  */
-export async function generateDmReply({ instructions, input }) {
+export async function generateDmReply({ instructions, input, playerNames = [] }) {
   const conversation = [...input];
   const rolls = [];
 
@@ -110,8 +137,10 @@ export async function generateDmReply({ instructions, input }) {
     conversation.push(...result.output);
 
     for (const call of calls) {
-      const results = call.name === 'roll_dice' ? runRollCall(call) : [];
-      rolls.push(...results);
+      const results = call.name === 'roll_dice' ? runRollCall(call, playerNames) : [];
+      // Refused player rolls go back to the model only; players never see them.
+      rolls.push(...results.filter(r => !r.refused));
+      for (const r of results.filter(r => r.refused)) console.log(`[dice] refused player roll: ${r.label}`);
       conversation.push({
         type: 'function_call_output',
         call_id: call.call_id,

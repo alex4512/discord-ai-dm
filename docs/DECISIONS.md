@@ -762,3 +762,30 @@ reused.
   - **The old instruction** returned 12/12 NPCs and 13/13 places in 10,957 tokens ($0.20).
   - **The first new wording** returned nothing and missed an NPC memory.
   - **The final wording** returned only the NPC who was spoken to (fact and memory added, old facts kept) and the 2 new places, plus 2 events, in 433–753 tokens ($0.02–0.06). Nothing was lost in the merge.
+
+## D-027: Players' dice refused in code; the DM picks the check
+
+**Date:** 2026-11-10 · **Status:** accepted (owner) · **Code:** `isPlayerRoll` in `src/ai/dungeonMaster.js`, DM rules in `src/ai/prompts.js`
+
+**Context.** Two problems in George's play after the switch to gpt-5.4-mini (D-026):
+- **Dice:** the DM rolled a player character's dice itself, against the rule in the prompt and in the tool description.
+- **Skills:** George named Perception for something that needed Investigation, and the DM went along with it.
+
+**Decision.**
+- **Dice are enforced in code, not only by the prompt.** A `roll_dice` request whose label makes a player character the roller is refused.
+  - **Refused:** "Looming Shade Perception check", "Kraavok attack roll", "Perception check (Looming Shade)".
+  - **Allowed:** a character named only as the target: "Goblin attack vs Kraavok", "Damage to Kraavok".
+  - **What happens:** players never see the refused roll. The model is told to ask the player instead, and the console logs `[dice] refused player roll`.
+- **Which check applies is the DM's call (PHB 2014, chapter 7).** When a player names a check that doesn't fit, the DM says so in one sentence and asks for the right one before resolving anything.
+  - **Perception** is noticing with the senses.
+  - **Investigation** is searching for and reasoning from clues.
+  - **Insight** reads a person.
+  - **No roll** when nothing is at stake.
+
+**Checked.**
+- **Label tests:** 10/10.
+- **Mocked tool loop:** the player roll is hidden and the refusal is fed back.
+- **Real gpt-5.4-mini in `#dm-testing`, nothing stored:**
+  - "search the drawers… I use Perception" got "…is Intelligence (Investigation), not Perception: roll Investigation" (in English, and in Greek for a lock).
+  - "stand watch… Perception?" was accepted.
+  - No dice were rolled for the player in any case.

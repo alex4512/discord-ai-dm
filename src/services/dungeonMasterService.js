@@ -161,7 +161,8 @@ export async function playTurn({
   try {
     const raw = await generateDmReply({
       instructions,
-      input: [...history, { role: 'user', content: playerInput }]
+      input: [...history, { role: 'user', content: playerInput }],
+      playerNames: characterNames
     });
     // XP tags first, so a reply that is only tags still gets the scene fallback.
     const levels = Object.fromEntries(players.map(p => [p.character_name, p.character_level]));
