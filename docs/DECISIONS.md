@@ -716,3 +716,20 @@ reused.
 - **The two messages of that briefing were moved to an archive timeline** (kept, not used), as a rollback would. Backup: `dnd_campaign_pre-archive-briefing_20261110-074025.dump`. The briefing's content was already added as canon (D-023).
 
 **Checked (real DM, rolled back).** Three unmarked briefings (English, Greek, "just so you have it as DM") got short out-of-character acknowledgements with no NPC reaction. Kraavok speaking aloud to Brann still got Brann's answer.
+
+## D-025: `/help` lists the commands per channel; one pinned message
+
+**Date:** 2026-11-10 · **Status:** accepted (owner) · **Code:** `src/discord/commands/helpCommand.js`
+
+**Context.** Players had no way to find out what the bot can do, apart from the guides. The DM's instructions don't describe the bot's commands, so asking the DM gives a guess.
+
+**Decision.**
+- **`/help` (English), `/help gr` or `/βοήθεια` (Greek).** These list the commands that work in the channel where you ask:
+  - **#main-adventure:** save, undo and rollback, plus everything else.
+  - **Private channels:** the same, without save, undo and rollback.
+  - **#dm-testing:** also the DM tools.
+- **The list lives in code next to the commands.** Add a line when a player-visible command ships, so it can't drift the way a pinned note would.
+- **One short pinned message in #main-adventure, in Greek.** It covers how to play, `(OOC)`, loot going to the party, and private channels, and it points to `/help gr`. No notes per channel.
+- **Declined:**
+  - Release notes for players, since features change too often.
+  - Teaching the DM the command list.

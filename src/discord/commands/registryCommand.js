@@ -13,6 +13,7 @@ import { isCampaignChannel } from '../../services/roster.js';
 import { getState } from '../../db/repositories/stateRepository.js';
 import { currentInventory, recordLoot } from '../../services/inventoryService.js';
 import { formatInventory, formatLootLine, inventoryFor, parseLootTag } from '../../services/loot.js';
+import { helpCommand } from './helpCommand.js';
 
 /** Readers + filtered views for the channel a command was sent in. */
 async function channelView(ctx) {
@@ -265,6 +266,7 @@ const inventoryCommand = {
 
 /** World commands, tried in order by the message handler. */
 export const WORLD_COMMANDS = [
+  helpCommand,
   registryCommand({ command: '/npc', kind: 'npcs' }),
   registryCommand({ command: '/location', kind: 'locations' }),
   chronicleCommand,

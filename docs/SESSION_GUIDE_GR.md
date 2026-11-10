@@ -21,6 +21,7 @@
 
 | Εντολή | Τι κάνει |
 | --- | --- |
+| `@Dungeon Master /help gr` | Όλες οι εντολές που δουλεύουν σε αυτό το κανάλι, στα ελληνικά (`/help`: στα αγγλικά) |
 | `@Dungeon Master /checkpoint show` | Τι ξέρει ο ήρωάς σου |
 | `@Dungeon Master /npc list` | Πρόσωπα που ξέρεις |
 | `@Dungeon Master /location list` | Τόποι που ξέρεις |

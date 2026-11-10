@@ -239,7 +239,8 @@ Adopted 2026-11-10 (D-021). Each feature still gets its own design agreed with t
 
 - [x] Database-driven roster and private channels; no hard-coded characters (D-020 step 1)
 - [ ] `/player add` with channel creation, guided introduction and story entry
-- [ ] Player guides (English, Greek): the Greek session guide exists (`docs/SESSION_GUIDE_GR.md`); there's no English player guide yet, and the DM can't answer questions about the bot's commands (only `help` subcommands and the guides can)
+- [x] `/help` and `/help gr`: the commands that work in this channel, kept in code (D-025); a short Greek pinned message in `#main-adventure` points to it
+- [ ] Player guides: the Greek session guide exists (`docs/SESSION_GUIDE_GR.md`), there's no English one yet. The DM itself can't answer questions about the bot's commands. Release notes for players were declined (2026-11-10: features change too often)
 
 ## Next Steps
 

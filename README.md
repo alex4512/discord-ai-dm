@@ -40,10 +40,12 @@ question), is answered briefly by the DM. NPCs never hear it and the scene
 doesn't move. Only what a character says in the scene is heard by those
 present.
 
-**Help.** `/checkpoint help`, `/xp help` and `/inventory help` list their
-commands. The DM itself doesn't know the bot's commands, so asking it "what
-can you do?" gives an unreliable answer. Players learn the commands from
-this README or the Greek guide ([docs/SESSION_GUIDE_GR.md](docs/SESSION_GUIDE_GR.md)).
+**Help (D-025).** `/help` (English) or `/help gr` (Greek; also `/βοήθεια`)
+lists the commands that work in the channel where you ask.
+`/checkpoint help`, `/xp help` and `/inventory help` give the details. The
+list lives in `src/discord/commands/helpCommand.js`: add a line there when
+a player-visible command ships. The DM itself doesn't know the bot's
+commands, so asking it "what can you do?" gives an unreliable answer.
 
 ### Checkpoint commands
 
