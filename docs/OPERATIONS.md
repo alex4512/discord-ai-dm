@@ -57,6 +57,7 @@ commit message.
 | `0005_locations_chronicle` | `locations`, `chronicle` on state, versions, drafts | yes | restore backup, or drop the added columns |
 | `0006_scene_images` | new tables `image_generations`, `scene_images`, `scene_arrivals` | yes | drop the three tables |
 | `0007_xp_progress` | `progress` JSONB on state/versions/drafts; new table `xp_awards` (seq from the messages sequence) | yes | drop `xp_awards` and the three `progress` columns |
+| `0009_inventory` | `inventory` JSONB on state/versions/drafts; new table `inventory_events` (seq from the messages sequence). Backfilled 2026-11-10 with 9 items from the shared record (D-022) | yes, but **restart before the next save**: a save by older code moves the boundary past the backfilled events without folding them, so they'd be lost (re-run the backfill then) | drop `inventory_events` and the three `inventory` columns |
 | `0008_player_channels` | `campaign_players.private_channel_id` + unique index (D-020). Filled once for Kraavok and Looming from the old `.env` values (2026-11-09) | yes (older code still reads `.env`) | drop the column and index |
 
 Commits that add no migration (for example the D-004 prompt change) only

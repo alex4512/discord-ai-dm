@@ -24,6 +24,8 @@ import { SIZE_BUDGETS, toCharacterSummary } from '../ai/prompts.js';
 import { getCampaignLegacyCheckpoint } from './campaignService.js';
 import { foldProgress, withXpLevels } from './progressService.js';
 import { getPrivateChannels } from './roster.js';
+import { foldInventory } from './inventoryService.js';
+import { inventoryFor, inventoryPromptView } from './loot.js';
 
 /** Previous size vs budget for one record (D-017). */
 function sizeBudget(record, previousValue) {
@@ -112,6 +114,11 @@ export async function saveCheckpoint({ guildId, authorId }) {
     Object.fromEntries(Object.entries(progress).map(([name, p]) => [name, p.xp]))
   );
 
+  // Loot up to the boundary folds into the saved inventory (D-022). Each
+  // summary gets only the part its audience may see.
+  const inventory = await foldInventory({ guildId, state, untilSeq: boundarySeq });
+  const inventoryKnownTo = audience => inventoryPromptView(inventoryFor(inventory, audience));
+
   const privateScopes = await Promise.all(
     getPrivateScopes(players).map(async scope => {
       const name = scope.player.character_name;
@@ -157,6 +164,7 @@ export async function saveCheckpoint({ guildId, authorId }) {
     active_main_history: mainHistory,
     players: playerNames,
     world_known_to_everyone: worldKnownTo(characterNames),
+    tracked_inventory: inventoryKnownTo({ kind: 'shared' }),
     size_budget: sizeBudget('checkpoint', previous.checkpoint)
   });
 
@@ -170,6 +178,7 @@ export async function saveCheckpoint({ guildId, authorId }) {
       main_adventure_history: mainHistory,
       own_private_history: scope.history,
       world_known_to_character: worldKnownTo([scope.name]),
+      tracked_inventory: inventoryKnownTo({ kind: 'character', name: scope.name }),
       size_budget: sizeBudget('character_knowledge', scope.previousKnowledge)
     })
   ]);
@@ -219,7 +228,8 @@ export async function saveCheckpoint({ guildId, authorId }) {
     npcs: mergeUpdate(previous.npcs, world.npcs),
     locations: mergeUpdate(previous.locations, world.locations),
     chronicle: appendChronicle(previous.chronicle, world.events, state.version + 1),
-    progress
+    progress,
+    inventory
   };
 
   const { version } = await withGuildTransaction(guildId, async db => {

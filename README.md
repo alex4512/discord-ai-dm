@@ -65,6 +65,8 @@ appears there once they've learned something about it.
 | `/xp <count> <creature> CR <cr>; ... \| <names>` | all | Award XP by hand, same syntax as the DM's tag |
 | `/xp medium challenge: <what> \| <names>` | all | Award a non-combat challenge or milestone (easy, medium, hard, deadly) |
 | `/xp set <character> <total>` | testing | Set a character's XP total |
+| `/inventory` (`/inv`) | all | The party's items; your own too in your private channel (`#dm-testing`: everything) |
+| `/inventory <changes>` | testing | Correct by hand, same syntax as the DM's loot tag (`+2 healing potion; 1 rope: party -> Kraavok`) |
 
 **Experience (D-012, D-014, D-015).** XP is earned for overcoming
 challenges: fights won, and non-combat obstacles (a trap disarmed, a
@@ -75,6 +77,17 @@ table, splits it evenly, records it and posts e.g. "+75 each". Totals and
 levels are kept by the bot, versioned with the story: a rollback removes
 later XP, an undo keeps it. Totals show only in your private channel
 (`/xp`) and `#dm-testing`; level-ups are announced in your private channel.
+
+**Loot and inventory (D-022).** Loot goes to the **party** by default.
+It goes to one character only when the story says so explicitly ("Kraavok
+keeps the dagger"). When items or coins change hands, the DM adds a hidden
+loot tag. The bot checks it against what is held (nothing can be spent
+twice or taken from someone who doesn't have it), records it and posts
+e.g. "🎒 Loot: the party +40 gp · the party +2 healing potion". Like XP, the
+inventory is versioned with the story. Personal items gained in a private
+channel, such as starting gear listed there, are secret: only that
+character and `#dm-testing` see them. Party items, and personal items taken
+in the open, are visible everywhere.
 
 **Dice (D-013).** Players roll their own characters' dice however they like
 (Avrae, physical dice, any app) and tell the DM in any words. The DM rolls for monsters and NPCs through a `roll_dice` tool. The
@@ -154,6 +167,8 @@ src/
 │   ├── dice.js               # Real dice for monsters/NPCs (crypto RNG)
 │   ├── xp.js                 # XP tags: CR and challenge pricing
 │   ├── progressService.js    # XP totals, levels, save folding
+│   ├── loot.js               # Loot tags, checks, per-audience inventory views (D-022)
+│   ├── inventoryService.js   # Current inventory, save folding, recording
 │   ├── registry.js           # Pure registry/chronicle/NPC-memory merge helpers
 │   ├── campaignService.js
 │   ├── checkpointService.js
@@ -206,8 +221,8 @@ channels.
 
 ## Caveats
 
-- Character state is XP and level only (by design). Players state HP, AC,
-  conditions and items when relevant and report their own rolls.
+- Character state is XP, level and inventory (D-022). Players state HP,
+  AC and conditions when relevant and report their own rolls.
 - Restarting the bot cuts off any reply or save in progress, and mentions
   sent while it is down are not answered. Restart when nobody is mid-turn.
   Graceful restart is on the roadmap.

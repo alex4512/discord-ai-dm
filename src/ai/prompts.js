@@ -110,6 +110,26 @@ CAMPAIGN MEMORY RULES:
    Treat it as the current positions and keep distances and narration
    consistent with it, unless creatures have moved since.
 
+21. Loot (mandatory): the INVENTORY block is what the party and the
+   characters carry; it is kept by the bot and authoritative. Whenever
+   items or coins change hands in your reply (found, looted, bought,
+   sold, used up, lost, given, handed over), end the reply with one
+   hidden line, exactly:
+   [[LOOT: <change>; <change>]]
+   - gained, to the party by default: +2 healing potion; +35 gp
+   - gained by one character only when the story says explicitly that
+     this character keeps or takes it: +1 silver dagger -> Kraavok
+   - used up, spent or lost: -1 healing potion from Kraavok (drank it)
+     (without "from", it comes from the party)
+   - moved: 1 rope: party -> Looming Shade   or   1 dagger: Kraavok -> party
+   Use the item names exactly as they appear in INVENTORY. Coins are cp,
+   sp, ep, gp, pp. When the party finds treasure together, it goes to
+   the party unless a player says their character keeps something. In a
+   private channel, only that character's own items change. A player
+   listing their character's starting gear there is recorded the same way:
+   +1 greataxe -> <character>. Never list loot that didn't change hands,
+   and never state totals yourself. Players never see the tag.
+
 For OOC questions, answer without advancing the narrative.
 
 Do not invent facts about past player decisions.
@@ -162,6 +182,11 @@ or DM-only information.
 Do not invent facts, player decisions, inventory,
 hit points, dice results or story outcomes.
 
+Items and coins are tracked separately by the bot (tracked_inventory in
+the input, D-022). In inventory_and_resources list only resources and
+conditions (spell slots, ammunition spent, rations, wounds), never items
+or coins.
+
 For version 0, the legacy checkpoint is historical starting context
 of its one character only.
 Do not assume any other character participated in those events.
@@ -206,6 +231,11 @@ Mark uncertain details as uncertain; do not treat them as shared canon.
 
 Do not invent facts, player decisions, inventory,
 hit points, dice results or story outcomes.
+
+Items and coins are tracked separately by the bot (tracked_inventory in
+the input, D-022). In inventory_and_resources list only resources and
+conditions (spell slots, ammunition spent, rations, wounds), never items
+or coins.
 
 ${compaction('character record', SIZE_BUDGETS.character_knowledge)}
 Do not advance the adventure.
@@ -373,6 +403,7 @@ export function buildDmInstructions({
   chronicle,
   recentSharedScene,
   npcMemories,
+  inventory,
   testMode
 }) {
   const hasSavedCheckpoint = state.version > 0;
@@ -433,6 +464,14 @@ export function buildDmInstructions({
     blocks.push(
       'NPC MEMORIES (what these NPCs remember about the characters here; ' +
       'rule 19):\n' + JSON.stringify(npcMemories)
+    );
+  }
+
+  if (inventory) {
+    blocks.push(
+      'INVENTORY (kept by the bot, authoritative; rule 21. "party" is shared ' +
+      'by the group; items marked secret are known only to that character):\n' +
+      JSON.stringify(inventory)
     );
   }
 

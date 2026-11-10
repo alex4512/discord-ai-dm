@@ -12,6 +12,8 @@ import { getCampaignLegacyCheckpoint } from './campaignService.js';
 import { awardEntries, extractXpTags, xpHistoryNote } from './xp.js';
 import { currentXp, recordAwards, withXpLevels } from './progressService.js';
 import { formatRoll } from './dice.js';
+import { extractLootTags, formatLootLine, inventoryFor, inventoryPromptView, lootHistoryNote } from './loot.js';
+import { currentInventory, recordLoot } from './inventoryService.js';
 import {
   audienceForChannel,
   characterKnowledgeFor,
@@ -88,6 +90,11 @@ export async function playTurn({
   const players = withXpLevels(registered, xpByName);
   player = players.find(p => p.character_name === player.character_name) || player;
 
+  // Loot kept by the bot (D-022), filtered to what this channel may see.
+  const inventory = inventoryPromptView(
+    inventoryFor(await currentInventory(guildId, state), audience)
+  );
+
   const readers = readersOf(audience, players);
   const characterNames = players.map(p => p.character_name);
 
@@ -127,6 +134,7 @@ export async function playTurn({
       : null,
     // NPCs mentioned in the message, recent history or scene (D-016).
     npcMemories: npcMemoriesFor(state.npcs, audience, readers, sceneText),
+    inventory,
     testMode
   });
 
@@ -149,6 +157,7 @@ export async function playTurn({
   let reply;
   let scene;
   let xpAwards = [];
+  let loot = { ops: [], invalid: [] };
   try {
     const raw = await generateDmReply({
       instructions,
@@ -157,7 +166,8 @@ export async function playTurn({
     // XP tags first, so a reply that is only tags still gets the scene fallback.
     const levels = Object.fromEntries(players.map(p => [p.character_name, p.character_level]));
     const xp = extractXpTags(raw.text, characterNames, levels);
-    const parsed = extractSceneTag(xp.text);
+    loot = extractLootTags(xp.text, characterNames);
+    const parsed = extractSceneTag(loot.text);
     // Monster/NPC dice are shown above the narration and kept in history (D-013).
     const rollLines = (raw.rolls || []).map(formatRoll);
     reply = { ...raw, text: [rollLines.join('\n'), parsed.text].filter(Boolean).join('\n\n') };
@@ -169,14 +179,30 @@ export async function playTurn({
     throw error;
   }
 
+  // Loot changes are checked against the inventory and recorded (D-022);
+  // test mode only shows them.
+  const lootResult = await recordLoot({
+    guildId,
+    channelId,
+    userId: authorId,
+    ops: loot.ops,
+    context: { kind: audience.kind, characterName: player.character_name },
+    dryRun: testMode
+  });
+  const lootText = formatLootLine({ ...lootResult, invalid: loot.invalid });
+
   if (!testMode) {
     await storeMessage({
       ...base,
       id: reply.id,
       authorId: botUserId,
       role: 'assistant',
-      // The award note keeps XP in history, so the next save records it.
-      content: [reply.text, ...xpAwards.map(xpHistoryNote)].join('\n\n')
+      // Award and loot notes keep them in history, so the next save records them.
+      content: [
+        reply.text,
+        ...xpAwards.map(xpHistoryNote),
+        lootHistoryNote(lootResult.applied)
+      ].filter(Boolean).join('\n\n')
     });
   }
 
@@ -200,6 +226,7 @@ export async function playTurn({
     text: reply.text,
     scene,
     xpResults,
+    lootText: lootText && testMode ? `${lootText}\n*(test mode: not recorded)*` : lootText,
     audience,
     version: state.version,
     timelineId: state.timeline_id,

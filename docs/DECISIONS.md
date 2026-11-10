@@ -632,3 +632,45 @@ reused.
 - **Architectural principle:** PostgreSQL is the authoritative campaign state. The AI proposes narration and state changes; the application validates and persists them. Already true for saves, XP (D-014), dice (D-013) and maps (D-018). Every new feature follows it.
 - **Each feature still gets its own design agreed before building.** Known conflicts are noted in section 8 so they are decided then, not discovered: inventory checks vs the XP-only decision, passive scores vs XP-only, and stored hidden objects vs maps that are redrawn each time.
 - **Backlog, not scheduled:** onboarding step 2 (`/player add`, when a player joins) and hardening (Milestone 5). Cost tracking moves into feature 8.
+
+## D-022: Loot and inventory kept by the bot; party by default
+
+**Date:** 2026-11-10 · **Status:** accepted (user request; amends the XP-only decision of D-014 for items and coins) · **Migration:** `0009_inventory.sql` · **Code:** `src/services/loot.js`, `src/services/inventoryService.js`, `src/db/repositories/inventoryRepository.js`, DM rule 21 (`src/ai/prompts.js`), `/inventory` in `src/discord/commands/registryCommand.js`
+
+**Context.** Before deciding how loot is shared, the group needs to know what it has. The owner wants a common inventory by default. An item goes to one character only when the story says so explicitly. Items were only free-text lines in the saved records (`inventory_and_resources`).
+
+**Decision.**
+- **Two kinds of holder.** The party (common, the default) and a single character (only when explicit). Coins are items (`cp`, `sp`, `ep`, `gp`, `pp`).
+- **The DM proposes, the code decides** (D-021 principle). DM rule 21: whenever items or coins change hands, the reply ends with a hidden tag:
+  - `[[LOOT: +2 healing potion; +35 gp]]` gains, to the party by default
+  - `+1 silver dagger -> Kraavok` an explicit keep
+  - `-1 healing potion from Kraavok (drank it)` a removal
+  - `1 rope: party -> Looming Shade` a move
+- **The code checks every change against what is held,** in order. It refuses to remove more than a holder has (so nothing is spent twice) and refuses unknown holders. Accepted changes are shown under the reply ("🎒 Loot: …"); refused ones as "⚠️ Not recorded: … (why)".
+- **Built like XP (D-014).** An `inventory_events` ledger on the messages sequence. Each save folds events up to the boundary into the `inventory` partition, so rollback and undo restore it correctly. A loot note is stored with the DM reply.
+- **Privacy.**
+  - **Party items:** visible everywhere.
+  - **Personal items:** secret when gained in a private channel (for example starting gear listed there), seen only by that character and `#dm-testing`. Taken in the open, they are visible to all.
+  - **Private channels:** only that character's own items can change. Changes to the party or another character are refused, because the others would learn of them; they happen in `#main-adventure`.
+  - **Prompts and save summaries** get the same filtered views (the DM-notes summary sees nothing extra).
+- **Starting gear** is recorded on request, as private personal items. The player lists it to the DM in their private channel. Not required.
+- **Saved records stop listing items:** the shared and character summaries get `tracked_inventory`, and `inventory_and_resources` now holds only resources and conditions.
+- **Commands:**
+  - `/inventory` (`/inv`) shows what the channel may see.
+  - `/inventory <changes>` in `#dm-testing` makes hand corrections in the tag syntax; `(secret)` marks a private item there.
+- **Backfill (2026-11-10, one-off, after a backup).** A model call turned the saved records' item lines into ledger events. Shared record: 8 party items and Kraavok's torch. Private records: nothing new. Events sit after the v32 boundary, so the next save folds them in. **That save must be made by the new code** (see OPERATIONS, 0009).
+
+**Checked (2026-11-10).**
+- **Logic test:** 22/22 pure tests: parsing, default holders, refusals, no double spend, private-channel limits, views, secret handover.
+- **End-to-end** (real DM model, live data, rolled back): 16/16, no rows left.
+  - Loot found together went to the party: 40 gp, 2 potions, the dagger.
+  - "Kraavok keeps the dagger" moved it from the party to him, public.
+  - Starting gear listed in Kraavok's private channel was recorded secret.
+  - Looming's and main's prompts showed party loot and Kraavok's dagger but not his greataxe.
+  - The save inputs got the right views, and nothing was saved.
+
+**What to look for in play.**
+1. After a find, the "🎒 Loot" line appears and `/inventory` matches.
+2. "X keeps it" moves the item to X.
+3. Using a potion removes it.
+4. Nothing personal from a private channel ever shows in the other player's channel or in main.

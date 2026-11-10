@@ -10,6 +10,9 @@ import { recordAwards, setXp, xpReport } from '../../services/progressService.js
 import { announceXp, formatXpStatus } from '../xpAnnounce.js';
 import { storeMessage } from '../../db/repositories/messageRepository.js';
 import { isCampaignChannel } from '../../services/roster.js';
+import { getState } from '../../db/repositories/stateRepository.js';
+import { currentInventory, recordLoot } from '../../services/inventoryService.js';
+import { formatInventory, formatLootLine, inventoryFor, parseLootTag } from '../../services/loot.js';
 
 /** Readers + filtered views for the channel a command was sent in. */
 async function channelView(ctx) {
@@ -211,12 +214,62 @@ const xpCommand = {
   }
 };
 
+const INVENTORY_HELP = [
+  'Inventory commands (D-022):',
+  '/inventory: the party\'s items, plus your own in your private channel (#dm-testing: everything)',
+  'Corrections, #dm-testing only, same syntax as the DM\'s loot tag:',
+  '/inventory +2 healing potion; +35 gp: to the party',
+  '/inventory +1 silver dagger -> Kraavok: to one character (add "(secret)" for a private item)',
+  '/inventory -1 healing potion from Kraavok: remove',
+  '/inventory 1 rope: party -> Looming Shade: move'
+].join('\n');
+
+/**
+ * `/inventory`: what this channel may see of the inventory, or (in
+ * #dm-testing) a hand correction with the loot-tag syntax.
+ */
+const inventoryCommand = {
+  parse(prompt) {
+    const match = prompt.trim().match(/^\/(?:inventory|inv)(?:\s+([\s\S]+))?$/i);
+    return match ? (match[1] || '').trim() : null;
+  },
+
+  async handle(message, body, ctx) {
+    const audience = audienceForChannel(ctx.channelId, ctx.player);
+
+    if (!body) {
+      const state = await getState(ctx.guildId);
+      const view = inventoryFor(await currentInventory(ctx.guildId, state), audience);
+      return reply(message, formatInventory(view));
+    }
+
+    if (/^help$/i.test(body)) return reply(message, INVENTORY_HELP);
+    if (ctx.channelId !== config.channels.test) {
+      return reply(message, 'Inventory corrections are made in #dm-testing. Here, just play: the DM records loot.');
+    }
+
+    const names = (await getPlayers(ctx.guildId)).map(p => p.character_name);
+    const { ops, invalid } = parseLootTag(body, names);
+    if (!ops.length && !invalid.length) return reply(message, INVENTORY_HELP);
+
+    const result = await recordLoot({
+      guildId: ctx.guildId,
+      channelId: ctx.channelId,
+      userId: ctx.userId,
+      ops,
+      context: { kind: 'dm' }
+    });
+    return reply(message, formatLootLine({ ...result, invalid }) || INVENTORY_HELP);
+  }
+};
+
 /** World commands, tried in order by the message handler. */
 export const WORLD_COMMANDS = [
   registryCommand({ command: '/npc', kind: 'npcs' }),
   registryCommand({ command: '/location', kind: 'locations' }),
   chronicleCommand,
-  xpCommand
+  xpCommand,
+  inventoryCommand
 ];
 
 /** Runs the first matching world command. Returns true if one matched. */

@@ -78,7 +78,7 @@
 - ~~Import and persist full character sheets~~ Not planned: XP only (user decision 2026-11-09); more only on request
 - ~~Track HP, hit dice, exhaustion~~ On request only
 - ~~Track Rage, spell slots, resources~~ On request only
-- ~~Track inventory and currency~~ On request only
+- [x] Inventory and currency (user request 2026-11-10): party inventory by default, personal only when explicit; DM loot tags checked by code; ledger folded into saves; personal items from private channels secret; `/inventory` (D-022)
 - [x] XP for non-combat challenges and story milestones, rated easy–deadly and priced per level from the DMG thresholds; never for a single check on its own (D-015)
 - [x] XP and level kept by the bot: the DM tags resolved encounters, code computes XP from the CR table, records it in a ledger folded into each save; rollback/undo-safe; level-ups announced privately; `/xp`, `/xp set` (D-012, D-014)
 - [x] Level progression from XP (D-014); conditions and rests on request only
@@ -172,7 +172,7 @@ Adopted 2026-11-10 (D-021). Each feature still gets its own design agreed with t
 **Deferred.** Visual fog of war: narration already handles discovery, and reliable world state matters more than hiding parts of the map.
 
 **Notes for the designs (how each fits what exists):**
-- **1 Auditor.** It can only check what is stored. Inventory is not tracked (XP-only decision, D-012/D-014), so inventory checks need inventory tracking first, or stay out. There is a starting point: each save already writes `continuity_warnings` in the DM notes.
+- **1 Auditor.** It can only check what is stored. Inventory is tracked since D-022, so the auditor can check items too. There is a starting point: each save already writes `continuity_warnings` in the DM notes.
 - **2 Diagnostics.** It overlaps with hardening (*structured logging and operational diagnostics*, section 6). Diagnostics must respect audiences: their output goes to `#dm-testing` only.
 - **3 Hidden objects.** This fits the locations registry (D-009). Map positions today exist only per sketch (D-018/D-019), so the design has to decide how a stored object gets a position on a map that is redrawn each time.
 - **4 Passive checks.** This needs each character's passive scores (Perception, Investigation, Insight). That is a small exception to the XP-only decision (D-014), so the owner decides it during the design. Secret rolls can use the existing bot dice (D-013) with results kept for `#dm-testing`.
@@ -242,7 +242,7 @@ Adopted 2026-11-10 (D-021). Each feature still gets its own design agreed with t
 
 ## Next Steps
 
-MVP completed 2026-11-10 (D-021). Last additions on 2026-11-09/10: direct background saves with undo (D-011), XP and levels (D-012, D-014, D-015), monster dice (D-013), NPC memory (D-016), bounded prompt size (D-017), scene maps stored in context (D-018, D-019), database roster (D-020).
+MVP completed 2026-11-10 (D-021). Last additions on 2026-11-09/10: direct background saves with undo (D-011), XP and levels (D-012, D-014, D-015), monster dice (D-013), NPC memory (D-016), bounded prompt size (D-017), scene maps stored in context (D-018, D-019), database roster (D-020). After the MVP, on request: loot and inventory, party by default (D-022, 2026-11-10).
 
 Decided against: Avrae roll reading (players report rolls in any words, Avrae optional) and full character sheets (XP only).
 

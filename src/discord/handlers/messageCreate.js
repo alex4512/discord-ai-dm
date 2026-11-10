@@ -112,6 +112,11 @@ async function handleRequest(message, prompt) {
     await announceXp(message, { ...xp, testMode: turn.testMode });
   }
 
+  // Loot recorded by the bot (D-022).
+  if (turn.lootText) {
+    await message.channel.send({ content: turn.lootText, allowedMentions: { parse: [] } });
+  }
+
   console.log(
     `[DM] PC=${player.character_name} ` +
     `channel=${message.channel.id} ` +

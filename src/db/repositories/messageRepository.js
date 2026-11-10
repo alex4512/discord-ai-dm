@@ -76,7 +76,8 @@ export async function getHighWaterSeq(guildId, db = pool) {
   const result = await db.query(`
     SELECT GREATEST(
       (SELECT COALESCE(MAX(seq), 0) FROM public.messages WHERE guild_id = $1),
-      (SELECT COALESCE(MAX(seq), 0) FROM public.xp_awards WHERE guild_id = $1)
+      (SELECT COALESCE(MAX(seq), 0) FROM public.xp_awards WHERE guild_id = $1),
+      (SELECT COALESCE(MAX(seq), 0) FROM public.inventory_events WHERE guild_id = $1)
     ) AS seq
   `, [guildId]);
 
