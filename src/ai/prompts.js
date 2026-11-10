@@ -4,7 +4,9 @@ export const DM_RULES = `
 You are the Dungeon Master for a shared
 Dungeons & Dragons 5e 2014 RAW campaign.
 
-The setting is Dunmere and the Northern Marches.
+The setting is the Sword Coast of the Forgotten Realms. Use its established
+places, peoples and lore freely, and invent local places, people and
+situations wherever nothing is established yet.
 
 PLAYER CHARACTERS:
 Those listed under REGISTERED PLAYER CHARACTERS below.
@@ -395,7 +397,7 @@ NPC fields:
   Backfill: EVERY NPC that has ever dealt with a player character must
   have memories of it. Check each NPC's facts, the chronicle and the DM
   notes (including legacy context); if an NPC has no memory yet of a
-  dealing found there (e.g. a fact "Kraavok rescued Orren"), write it now
+  dealing found there (e.g. a fact "Kraavok rescued the miller"), write it now
   (that NPC then counts as changed and is returned).
 
 Location fields:
@@ -444,7 +446,7 @@ If asked about a person, place or thing not established in shared play,
 do not describe it as unknown or empty. Say it hasn't come up in shared
 play yet, and point the player to their private channel or to sharing it
 in character. Example:
-"(OOC) Orren hasn't come up in shared play yet. If Kraavok knows him, ask
+"(OOC) The miller hasn't come up in shared play yet. If Kraavok knows him, ask
 me in your private channel, or tell the others in character."`,
   character: name => `Private channel: only ${name}'s player reads your reply.`,
   dm: 'DM testing channel: only the Dungeon Master reads your reply.'
@@ -696,8 +698,8 @@ Return JSON:
   or events belongs here: those are the adventure, not the backstory.
   Empty string if personal_knowledge has no such facts.
 
-The past before the adventure is told in-world ("Before he came to
-Dunmere, ..."), never as "before the campaign" or "before the story".
+The past before the adventure is told in-world ("Before they came here,
+...") never as "before the campaign" or "before the story".
 `;
 
 /** One chapter of the chronicle (D-033): replaces its events on play turns. */

@@ -895,3 +895,21 @@ If B feels thin after a session, change `OPENAI_MODEL=gpt-5.6-terra` and add its
 - Chapters are written by the save model (gpt-5.4), one call per chapter, about $0.01 each.
 
 **Checked.** Mocked tests (planning, one audience per chapter, Looming never sees Kraavok-only chapters, sharing, failure keeps old chapters, turn prompt), the partition through the real state/version SQL (rolled back), and one real chapter of the 23 oldest events: 301 words, every name, discovery and open thread kept, $0.009.
+
+## D-034: Clean campaign on the Sword Coast
+
+**Date:** 2026-11-10 · **Status:** done (owner) · **Code:** setting line in DM rules (`src/ai/prompts.js`); data reset by a one-off script
+
+**Context.** The first campaign started with one character's long solo history from before the bot, and a lot of work went into syncing it to the other player. The owner chose a clean start in the same server and channels.
+
+**Decision.**
+
+- **Setting:** the Sword Coast of the Forgotten Realms. The DM uses its lore freely and invents the rest; the opening place is the DM's choice.
+- **Removed** for this guild: messages, checkpoint versions and drafts, XP and loot ledgers, scene images and arrivals, and Kraavok's legacy checkpoint (so version 0 never seeds the old history again).
+- **Kept:** players, private channels, levels (Kraavok 4, Looming Shade 1), OpenAI usage. Gained XP reset: each starts at the minimum XP for their level. Character sheets live in Avrae.
+- **New version 1:** one shared event (Kraavok and Looming Shade are companions who know each other well), a shared checkpoint saying the DM sets the opening scene, and each character's private knowledge reduced to their backstory only. Backstories were extracted by gpt-5.4 and any fact naming the old adventure was dropped (Kraavok 2 facts, Looming Shade 3).
+- Prompt examples no longer use names from the old campaign.
+
+**Undo.** Restore `backups/dnd_campaign_pre-reset_20261110-185037.dump` with `pg_restore --clean` (see OPERATIONS.md), with the bot stopped.
+
+**Checked.** Dry run in a rolled-back transaction first; after applying, mocked turns in all three channels: Sword Coast setting, no old names, each private channel sees only its own backstory, main sees none.

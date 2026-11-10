@@ -121,7 +121,7 @@ export function parseLootTag(body, characterNames) {
       if (what && (gain[2] === undefined || to)) op = { type: 'gain', ...what, from: null, to };
     } else if (loss) {
       // "from <holder>" only counts when it names a holder ("letter from
-      // Orren" is an item).
+      // the miller" is an item).
       const fromMatch = loss[1].match(/^(.+?)\s+from\s+(.+)$/i);
       const from = fromMatch ? resolveHolder(fromMatch[2], characterNames) : null;
       const what = quantityAndItem(from ? fromMatch[1] : loss[1]);
