@@ -3,7 +3,7 @@ import { reply } from '../reply.js';
 import { getActiveCheckpoint } from '../../services/checkpointService.js';
 import { getPlayers } from '../../db/repositories/playerRepository.js';
 import { audienceForChannel, chronicleFor, readersOf, registryFor } from '../../services/audience.js';
-import { addAuthorNote } from '../../services/worldService.js';
+import { addAuthorNote, shareChronicle } from '../../services/worldService.js';
 import { REGISTRY_KINDS, findKey } from '../../services/registry.js';
 import { awardEntries, parseXpTag, xpHistoryNote } from '../../services/xp.js';
 import { recordAwards, setXp, xpReport } from '../../services/progressService.js';
@@ -211,6 +211,14 @@ const storyCommand = {
         content: `[${teller} tells the whole group the story so far, so everyone present now knows it:]\n\n${story}`,
         timelineId: state.timeline_id
       });
+      // The events themselves become shared, not just a summary of the telling.
+      const { version, shared } = await shareChronicle({
+        guildId: ctx.guildId,
+        userId: ctx.userId,
+        teller,
+        listeners: names
+      });
+      console.log(`[story] ${teller} told the group: ${shared} events now shared (v${version})`);
     }
 
     const header = teller ? `📜 **${teller}: the story so far**` : '📜 **The story so far**';

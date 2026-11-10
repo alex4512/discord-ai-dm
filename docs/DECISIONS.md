@@ -854,9 +854,11 @@ If B feels thin after a session, change `OPENAI_MODEL=gpt-5.6-terra` and add its
 
 - `/chronicle all`: every event the channel may know, from the beginning, numbered. No AI call.
 - `/story [gr] [character]`: one call on the turn model writes the story so far as prose, from the full chronicle the teller knows (plus Kraavok's legacy origin when he is the teller), ending on the current situation. About $0.015.
-  - **#main-adventure:** the asking player's character tells it to the group. It is stored in main history as an assistant message ("X tells the whole group the story so far"), so the next save makes it shared knowledge (owner's request). A player can only share what their own character knows.
+  - **#main-adventure:** the asking player's character tells it to the group. It is stored in main history as an assistant message ("X tells the whole group the story so far"), so the next save makes it shared knowledge (owner's request). Every chronicle event the teller knows also becomes known by all players at once (`shareChronicle` in `src/services/worldService.js`), as a new checkpoint version that `/checkpoint undo` can reverse. A player can only share what their own character knows.
   - **Private channel:** the owner's own story, not stored.
   - **#dm-testing:** the shared story by default, or one character's with `/story <character>`; not stored.
 - Names stay as written; the model must not translate or transliterate them.
 
 **Checked.** Mocked routing and secrecy tests (teller per channel, origin only for Kraavok, storage only in main, all rolled back), and one real Greek story for Kraavok: about 900 words, 18 s.
+
+**Fixed the same day.** The first real telling showed that storing the story was not enough: the save turned it into one shared event listing names, and the 28 detailed events stayed Kraavok-only (the chronicle is append-only), so Looming's DM knew nothing about the bell. Now the events themselves are shared. Applied once by hand for that telling (v43; v44 is an empty duplicate).

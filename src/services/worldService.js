@@ -32,6 +32,33 @@ export async function addAuthorNote({ kind, guildId, userId, name, note }) {
 }
 
 /**
+ * A character told the group everything they know (/story in main, D-031):
+ * every chronicle event `teller` knows becomes known by `listeners` too, as
+ * a new checkpoint version (undoable). Returns { version, shared }.
+ */
+export async function shareChronicle({ guildId, userId, teller, listeners }) {
+  const norm = n => String(n).trim().toLowerCase();
+  let shared = 0;
+  const { version } = await amendActiveSnapshot({
+    guildId,
+    userId,
+    reason: `${teller} told the group the story so far`,
+    mutate: snapshot => {
+      snapshot.chronicle = (snapshot.chronicle || []).map(entry => {
+        const knownBy = Array.isArray(entry?.known_by) ? entry.known_by : [];
+        if (!knownBy.map(norm).includes(norm(teller))) return entry;
+        const missing = listeners.filter(n => !knownBy.map(norm).includes(norm(n)));
+        if (!missing.length) return entry;
+        shared++;
+        return { ...entry, known_by: [...knownBy, ...missing] };
+      });
+      return snapshot;
+    }
+  });
+  return { version, shared };
+}
+
+/**
  * Imports a seed { npcs?: {...}, locations?: {...}, chronicle?: [...] } as
  * one new checkpoint version. Existing data is never overwritten: empty
  * fields are filled, facts/author notes/events appended (idempotent).
