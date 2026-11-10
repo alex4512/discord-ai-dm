@@ -256,6 +256,8 @@ Backlog, picked up when needed:
 - **Onboarding step 2** (Milestone 6, D-020): `/player add`, when a new player joins.
 - **Hardening** (Milestone 5): always-on hosting (pm2 proposed 2026-11-10, not wanted for now), scheduled backups, automated tests, graceful restart. Later: safe multi-instance operation, including message ordering (section 6). Cost tracking moves into feature 8.
 
+Done 2026-11-10: canon correction of Kraavok's origins from the owner's summary, as versions v35/v36 (D-023; method reusable).
+
 Smaller open items (carried over from the MVP):
 - verify in live play that the watchtower meeting reached the shared record
 - the Looming-only clue test

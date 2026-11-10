@@ -674,3 +674,30 @@ reused.
 2. "X keeps it" moves the item to X.
 3. Using a potion removes it.
 4. Nothing personal from a private channel ever shows in the other player's channel or in main.
+
+## D-023: Canon corrections from an owner summary
+
+**Date:** 2026-11-10 · **Status:** accepted (owner request) · **Versions:** v35, v36 · **Backup:** `dnd_campaign_pre-origins_20261110-072944.dump`
+
+**Context.** The owner wrote a summary of Kraavok's origin story (before the current scene). Nothing stored contradicted it, but much was missing: people, places, NPC memories, the DM's background truth. Without it, NPCs and the DM couldn't act on what had happened.
+
+**Decision.**
+- **The method, reusable for later corrections:**
+  1. Compare the summary read-only with what is stored, using only the views the owner may see (never another player's private record).
+  2. Show the gaps and any conflicts; the owner decides.
+  3. Back up the database.
+  4. Write one canon correction as a new version (`amendActiveSnapshot`): same timeline and history boundary, so no play is lost, and XP and inventory are untouched. It can be reverted by another correction.
+- **Where each kind of content goes:**
+  - **Facts the character witnessed:** NPC and place facts with `known_by` that character, plus chronicle events at the start of the chronicle.
+  - **What NPCs lived through:** NPC memories (D-016), so NPCs can bring it up in play.
+  - **Background truth:** DM notes and NPC author notes.
+  - **The character's own record:** a short summary in their knowledge record.
+  - **How the character comes across in public:** the shared record (no class, level or inner secrets).
+  - **Items:** the character's secret personal inventory (D-022).
+- **The current scene is never changed** by a backstory summary.
+- **Author notes reach the DM in every channel whose character knows that NPC** (D-007). They must not name things only another character knows; v36 reworded one note for this reason.
+
+**Checked (real DM, rolled back).**
+- **Kraavok's private channel:** the DM knows the added origin points, and the secret items show in its inventory.
+- **Main:** NPCs recall shared past events; the public "how Kraavok comes across" line is there; no secret items or private names.
+- **Looming's prompt:** none of the Kraavok-only names or items, except what the DM said aloud in main, which is public by design (D-010).
