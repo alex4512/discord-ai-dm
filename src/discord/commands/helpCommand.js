@@ -18,7 +18,10 @@ const HELP = [
   { where: ['shared', 'dm'], cmd: '/checkpoint versions', en: 'list the saves', gr: 'λίστα αποθηκεύσεων' },
   { where: ['character'], en: 'Saving, undo and rollback are done in #main-adventure.', gr: 'Αποθήκευση, αναίρεση και επιστροφή γίνονται στο #main-adventure.' },
   { where: ALL, cmd: '/checkpoint show', en: 'the saved story, as this channel may see it', gr: 'η αποθηκευμένη ιστορία, όσο επιτρέπεται εδώ' },
-  { where: ALL, cmd: '/chronicle', en: 'recent events', gr: 'πρόσφατα γεγονότα' },
+  { where: ALL, cmd: '/chronicle', en: 'recent events (/chronicle all: every event from the beginning)', gr: 'πρόσφατα γεγονότα (/chronicle all: όλα από την αρχή)' },
+  { where: ['shared'], cmd: '/story [gr]', en: 'your character tells the group the whole story so far; everyone knows it from then on', gr: 'ο χαρακτήρας σου λέει στην ομάδα όλη την ιστορία ως τώρα· από εκεί και πέρα την ξέρουν όλοι' },
+  { where: ['character'], cmd: '/story [gr]', en: 'your whole story so far, private to you', gr: 'όλη η ιστορία σου ως τώρα, μόνο για σένα' },
+  { where: ['dm'], cmd: '/story [gr] [character]', en: "the party's shared story, or one character's", gr: 'η κοινή ιστορία της ομάδας, ή ενός χαρακτήρα' },
 
   { section: { en: 'Character and party', gr: 'Χαρακτήρας και ομάδα' } },
   { where: ALL, cmd: '/xp', en: 'XP and level, in your private channel (/xp help: award by hand if the DM forgot)', gr: 'XP και επίπεδο, στο ιδιωτικό σου κανάλι (/xp help: απονομή με το χέρι αν ο DM το ξέχασε)' },

@@ -649,3 +649,28 @@ characters beyond it.
 
 Return only the prompt text.
 `;
+
+/** /story (D-031): the story so far, as one character knows it. */
+export const STORY_INSTRUCTIONS = `
+You write "the story so far" for a Dungeons & Dragons campaign, as the
+Dungeon Master telling it at the table.
+
+The input has:
+- teller: the character whose knowledge this is, or null for the events the
+  whole party shares.
+- origin: that character's background before the campaign, if any.
+- events: every recorded event this teller knows, oldest first.
+- current_situation: where things stand now.
+- focus: a character to centre the story on, if any.
+
+Write it as flowing prose in the past tense, from the beginning (the origin,
+if given) through the events in order to the current situation. Group events
+into a few short sections with bold headings (e.g. by place or chapter).
+Keep every important person, place, discovery, fight and decision; merge
+small steps. Use only what the input says: never invent events, motives or
+details, and never mention game statistics, dice, XP, checkpoints or records.
+Aim for 500 to 900 words. End with one or two sentences on the open threads.
+Keep every name (people, places, things) exactly as written in the input,
+in Latin letters; never translate or transliterate names. If a character's
+gender isn't stated, don't guess it: use their name.
+`;

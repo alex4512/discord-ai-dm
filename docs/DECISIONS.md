@@ -843,3 +843,20 @@ If B feels thin after a session, change `OPENAI_MODEL=gpt-5.6-terra` and add its
 - never ask permission to continue.
 
 **Checked.** Three chained "we press on" turns in the main channel (rolled back): no menus or offers. The DM moved on and reached a room by the third turn. Mini is still cautious about inventing; if it stays flat, the next step is a stronger model for turns (D-028).
+
+## D-031: The whole story on request (/chronicle all, /story)
+
+**Date:** 2026-11-10 · **Status:** accepted (owner) · **Code:** `src/discord/commands/registryCommand.js`, `generateStory` in `src/ai/dungeonMaster.js`, `STORY_INSTRUCTIONS` in `src/ai/prompts.js`
+
+**Context.** Asked for "the origin story", the DM gave only part of it. A turn sees only the last 30 chronicle events (`CHRONICLE_PROMPT_LIMIT`), the current checkpoint and history since the last save. The early events and Kraavok's legacy origin were not in its context, and `/chronicle` showed only the last 20.
+
+**Decision.**
+
+- `/chronicle all`: every event the channel may know, from the beginning, numbered. No AI call.
+- `/story [gr] [character]`: one call on the turn model writes the story so far as prose, from the full chronicle the teller knows (plus Kraavok's legacy origin when he is the teller), ending on the current situation. About $0.015.
+  - **#main-adventure:** the asking player's character tells it to the group. It is stored in main history as an assistant message ("X tells the whole group the story so far"), so the next save makes it shared knowledge (owner's request). A player can only share what their own character knows.
+  - **Private channel:** the owner's own story, not stored.
+  - **#dm-testing:** the shared story by default, or one character's with `/story <character>`; not stored.
+- Names stay as written; the model must not translate or transliterate them.
+
+**Checked.** Mocked routing and secrecy tests (teller per channel, origin only for Kraavok, storage only in main, all rolled back), and one real Greek story for Kraavok: about 900 words, 18 s.

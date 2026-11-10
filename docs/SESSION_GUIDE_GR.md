@@ -26,7 +26,8 @@
 | `@Dungeon Master /checkpoint show` | Τι ξέρει ο ήρωάς σου |
 | `@Dungeon Master /npc list` | Πρόσωπα που ξέρεις |
 | `@Dungeon Master /location list` | Τόποι που ξέρεις |
-| `@Dungeon Master /chronicle` | Γεγονότα που ξέρεις |
+| `@Dungeon Master /chronicle` | Πρόσφατα γεγονότα που ξέρεις (`/chronicle all`: όλα από την αρχή) |
+| `@Dungeon Master /story gr` | Όλη η ιστορία σου ως τώρα, σε κείμενο (στο #main-adventure: την αφηγείται ο χαρακτήρας σου στην ομάδα και τη μαθαίνουν όλοι) |
 | `@Dungeon Master /image <τι να δείξει>` | Εικόνα της σκηνής (ημερήσιο όριο) |
 | `@Dungeon Master /map` | Χάρτης-σκίτσο της σκηνής: ποιος είναι πού (`/map text` για κείμενο) |
 | `@Dungeon Master /xp` | Τα XP και το level σου |

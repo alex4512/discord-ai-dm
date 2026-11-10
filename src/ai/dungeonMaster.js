@@ -10,6 +10,7 @@ import {
   CHECKPOINT_INSTRUCTIONS,
   DM_NOTES_INSTRUCTIONS,
   MAP_INSTRUCTIONS,
+  STORY_INSTRUCTIONS,
   WORLD_UPDATE_INSTRUCTIONS
 } from './prompts.js';
 import { sceneMapSchema } from './mapSchema.js';
@@ -17,6 +18,7 @@ import { config } from '../config.js';
 import { rollDice } from '../services/dice.js';
 import { recordUsage } from '../services/usage.js';
 
+const STORY_MAX_OUTPUT_TOKENS = 4000;
 const EMPTY_RESPONSE = 'The Dungeon Master did not generate a response.';
 
 // Monster/NPC dice (D-013): the model requests rolls, the code rolls them.
@@ -217,6 +219,23 @@ export function generateSceneMap(context) {
     context,
     model: config.openai.model
   });
+}
+
+/**
+ * The story so far for /story (D-031). Plain prose on the turn model.
+ * `lang` is 'gr' for Greek, otherwise English.
+ */
+export async function generateStory({ context, lang = 'en' }) {
+  const model = config.openai.model;
+  const language = lang === 'gr' ? 'Greek' : 'English';
+  const result = await openai.responses.create({
+    model,
+    instructions: `${STORY_INSTRUCTIONS}\nWrite it in ${language}.`,
+    input: [{ role: 'user', content: JSON.stringify(context) }],
+    max_output_tokens: STORY_MAX_OUTPUT_TOKENS
+  });
+  await recordUsage({ kind: 'story', model, usage: result.usage });
+  return result.output_text?.trim() || EMPTY_RESPONSE;
 }
 
 /**

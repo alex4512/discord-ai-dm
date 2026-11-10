@@ -14,6 +14,9 @@ import { getState } from '../../db/repositories/stateRepository.js';
 import { currentInventory, recordLoot } from '../../services/inventoryService.js';
 import { formatInventory, formatLootLine, inventoryFor, parseLootTag } from '../../services/loot.js';
 import { helpCommand } from './helpCommand.js';
+import { generateStory } from '../../ai/dungeonMaster.js';
+import { getCampaignLegacyCheckpoint } from '../../services/campaignService.js';
+import { LEGACY_CHECKPOINT_CHARACTER } from '../../constants.js';
 
 /** Readers + filtered views for the channel a command was sent in. */
 async function channelView(ctx) {
@@ -117,23 +120,101 @@ function registryCommand({ command, kind }) {
 
 const CHRONICLE_LIST_LIMIT = 20;
 
-/** /chronicle: recent events this channel's readers know (D-009). */
+/**
+ * /chronicle: recent events this channel's readers know (D-009).
+ * /chronicle all: every one of them, from the beginning, numbered (D-031).
+ */
 const chronicleCommand = {
   parse(prompt) {
-    return /^\/chronicle\s*$/i.test(prompt.trim()) ? 'list' : null;
+    const match = prompt.trim().match(/^\/chronicle(?:\s+(all))?\s*$/i);
+    return match ? (match[1] ? 'all' : 'list') : null;
   },
 
-  async handle(message, _args, ctx) {
+  async handle(message, args, ctx) {
     const { state, readers } = await channelView(ctx);
-    const events = chronicleFor(state?.chronicle, readers, { limit: CHRONICLE_LIST_LIMIT });
+    const all = args === 'all';
+    const events = chronicleFor(state?.chronicle, readers, { limit: all ? 0 : CHRONICLE_LIST_LIMIT });
 
     const text = events.length
       ? events
-          .map(e => `- ${e.event}${e.location ? ` *(${e.location})*` : ''}`)
+          .map((e, i) => `${all ? `${i + 1}.` : '-'} ${e.event}${e.location ? ` *(${e.location})*` : ''}`)
           .join('\n')
       : 'No events have been recorded for this channel yet.';
 
     return reply(message, text);
+  }
+};
+
+const STORY_LANG = /^(gr|el|greek|ελληνικά)$/i;
+
+/**
+ * /story [gr] [character]: the story so far, written by the DM from the
+ * chronicle (D-031).
+ * - #main-adventure: told by the asking player's character to the group,
+ *   from everything that character knows (plus Kraavok's origin). It is
+ *   stored in main history, so the next save makes it shared knowledge.
+ * - Private channel: the owner's own story, not stored.
+ * - #dm-testing: the party's shared story, or `/story <character>` for one
+ *   character's; not stored.
+ */
+const storyCommand = {
+  parse(prompt) {
+    const match = prompt.trim().match(/^\/(?:story|ιστορία|ιστορια)(?:\s+([\s\S]+))?$/i);
+    return match ? (match[1] || '').trim() : null;
+  },
+
+  async handle(message, args, ctx) {
+    const words = args.split(/\s+/).filter(Boolean);
+    const lang = words.some(w => STORY_LANG.test(w)) ? 'gr' : 'en';
+    const nameArg = words.filter(w => !STORY_LANG.test(w)).join(' ').toLowerCase();
+
+    const state = await getActiveCheckpoint(ctx.guildId);
+    const players = await getPlayers(ctx.guildId);
+    const names = players.map(p => p.character_name);
+    const named = nameArg && names.find(n => n.toLowerCase() === nameArg || n.toLowerCase().split(/\s+/)[0] === nameArg);
+    const audience = audienceForChannel(ctx.channelId, ctx.player);
+    const inMain = audience.kind === 'shared' && ctx.channelId === config.channels.main;
+
+    let teller = null;
+    if (audience.kind === 'character') teller = audience.name;
+    else if (inMain) teller = ctx.player?.character_name || null;
+    else if (audience.kind === 'dm') teller = named || null;
+
+    const readers = teller ? [teller] : names;
+    const events = chronicleFor(state?.chronicle, readers, { limit: 0 });
+    if (!events.length) return reply(message, 'No events have been recorded for this channel yet.');
+
+    const origin = teller === LEGACY_CHECKPOINT_CHARACTER
+      ? await getCampaignLegacyCheckpoint(ctx.guildId)
+      : null;
+    const cp = state?.checkpoint || {};
+
+    await message.channel.sendTyping().catch(() => {});
+    const story = await generateStory({
+      lang,
+      context: {
+        teller,
+        origin,
+        events: events.map(e => ({ event: e.event, location: e.location || null })),
+        current_situation: { location: cp.location || null, scene: cp.scene || null },
+        focus: named || teller
+      }
+    });
+
+    if (inMain && teller && state) {
+      await storeMessage({
+        id: message.id,
+        guildId: ctx.guildId,
+        channelId: ctx.channelId,
+        authorId: ctx.userId,
+        role: 'assistant',
+        content: `[${teller} tells the whole group the story so far, so everyone present now knows it:]\n\n${story}`,
+        timelineId: state.timeline_id
+      });
+    }
+
+    const header = teller ? `📜 **${teller}: the story so far**` : '📜 **The story so far**';
+    return reply(message, `${header}\n\n${story}`);
   }
 };
 
@@ -270,6 +351,7 @@ export const WORLD_COMMANDS = [
   registryCommand({ command: '/npc', kind: 'npcs' }),
   registryCommand({ command: '/location', kind: 'locations' }),
   chronicleCommand,
+  storyCommand,
   xpCommand,
   inventoryCommand
 ];
