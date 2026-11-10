@@ -828,3 +828,18 @@ If B feels thin after a session, change `OPENAI_MODEL=gpt-5.6-terra` and add its
 - The shared checkpoint keeps one plain known_fact per alias ("Known to the others as 'X'").
 
 **Checked.** The same question replayed in the main channel (rolled back) was answered about the right character.
+
+## D-030: A pacing rule for the DM
+
+**Date:** 2026-11-10 · **Status:** accepted (owner asked) · **Code:** DM rules in `src/ai/prompts.js`
+
+**Context.** On gpt-5.4-mini the DM ended most replies with a menu of options ("you can go on or stop and look") or chatbot offers ("if you want, I can write you a map"), asked whether to continue when nothing was at stake, and never followed up hints the players ignored. D-028's "end on what they can act on" made the menus worse.
+
+**Decision.** That phrase is removed. A pacing rule now says:
+
+- no options menus and no service offers; end on the situation, an NPC, or "What do you do?" when a real decision is pending;
+- when nothing is at stake, move forward, compress uneventful travel and arrive somewhere that matters, inventing what lies ahead if it isn't established;
+- an ignored hint either has its consequence narrated now or is dropped for good;
+- never ask permission to continue.
+
+**Checked.** Three chained "we press on" turns in the main channel (rolled back): no menus or offers. The DM moved on and reached a room by the third turn. Mini is still cautious about inventing; if it stays flat, the next step is a stronger model for turns (D-028).
