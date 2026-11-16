@@ -931,3 +931,18 @@ If B feels thin after a session, change `OPENAI_MODEL=gpt-5.6-terra` and add its
 **Undo.** Set `HISTORY_MAX_CHARS=18000` and `MAX_OUTPUT_TOKENS=1200` in `.env` and restart (history would still not be cut at saves; revert the commit for that).
 
 **Checked.** Mocked turns (no OpenAI call, rolled back): main gets all 358 messages (110k characters, was 18k); Kraavok's private channel gets the whole main transcript and no other private channel; reply cap 2500; no messages stored.
+
+## D-036: The DM plays every NPC and decides for the world
+
+**Date:** 2026-11-16 · **Status:** done (fix) · **Code:** pacing bullets, rule 4/5 and rule 22 in `src/ai/prompts.js`
+
+**Context.** In play the DM kept handing world decisions back to the player (a merchant asked "tell me how much" for a reward several times) and left a scene stuck: an NPC was told to explain what happened and never spoke, and two OOC requests to continue got "I won't go on without his answer" and "without putting words in his mouth". Causes: rule 22 said an OOC message never advances the scene; "never decide for the players" and "do not invent facts" were applied to NPCs; nothing said the DM voices every NPC.
+
+**Decision.**
+
+- **NPCs:** the DM plays every NPC, including companions and prisoners with the party. An NPC who is asked or set up to speak speaks in that same reply, with real words, invented consistently when not established.
+- **World decisions:** prices, rewards, offers, amounts and what an NPC knows or refuses are the DM's, stated concretely at once; never handed back to the players, and settled deals are not reopened. "Do not invent" covers only the players' own past decisions and dice.
+- **OOC exception:** an OOC request to continue, skip ahead, resolve something or let an NPC speak, or a note that the scene is stuck, is answered with at most one OOC sentence and then the narration.
+- Rules 4 and 5 now describe the whole-channel history (D-035).
+
+**Checked.** Real replays of the three stuck turns (rolled back, about $0.10): the merchant names an amount at once; "OOC continue" and "we are waiting to hear him" both get the NPC's full account in that reply.
