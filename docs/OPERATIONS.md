@@ -97,7 +97,8 @@ Levers, cheapest first:
 - **History:** `HISTORY_MAX_CHARS` (250000): turns see the whole channel
   on the current timeline up to this many characters; a save no longer
   resets it (D-035). A private channel also sees main, up to half of it.
-  `MAX_OUTPUT_TOKENS` (2500) caps a reply.
+  `MAX_OUTPUT_TOKENS` (2500) caps a reply. `TURN_REASONING` (empty)
+  sets reasoning effort for turns; raise `MAX_OUTPUT_TOKENS` if you use it.
 - **Images:** `IMAGE_DAILY_LIMIT`.
 - **Testing:** `#dm-testing` turns cost the same as real ones.
 

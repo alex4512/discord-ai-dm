@@ -122,7 +122,10 @@ export async function generateDmReply({ instructions, input, playerNames = [] })
       tools: [ROLL_DICE_TOOL],
       // Last round: no more tools, so the model must narrate.
       tool_choice: round < MAX_TOOL_ROUNDS ? 'auto' : 'none',
-      max_output_tokens: config.openai.maxOutputTokens
+      max_output_tokens: config.openai.maxOutputTokens,
+      ...(config.openai.turnReasoning
+        ? { reasoning: { effort: config.openai.turnReasoning } }
+        : {})
     });
     await recordUsage({ kind: 'turn', model: config.openai.model, usage: result.usage });
 

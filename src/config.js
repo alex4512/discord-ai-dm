@@ -72,6 +72,8 @@ function loadConfig(env = process.env) {
       // Saves decide who knows what, so they may use a stronger model (D-026).
       checkpointModel: env.CHECKPOINT_MODEL || env.OPENAI_MODEL || 'gpt-5.4',
       maxOutputTokens: parsePositiveInt(env, 'MAX_OUTPUT_TOKENS', 1200),
+      // Reasoning effort for play turns (none|low|medium); empty = model default.
+      turnReasoning: env.TURN_REASONING || '',
       // Per save call. Knowledge records grow over a campaign; 3500 truncated
       // one at ~16k chars. A save that doesn't fit fails and saves nothing.
       checkpointMaxOutputTokens: parsePositiveInt(env, 'CHECKPOINT_MAX_OUTPUT_TOKENS', 8000)

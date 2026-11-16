@@ -41,6 +41,16 @@ export function extractSceneTag(text) {
   return { text: clean || (scene ? `*The scene shifts to ${scene}.*` : ''), scene };
 }
 
+// An OOC message gets a reminder right next to it (model input only, never
+// stored): rule 22 sits deep in long instructions and the model kept
+// answering "we wait to hear him" with an acknowledgement (D-036).
+const OOC_MARK = /(^|[\s(\[])ooc\b/i;
+const OOC_REMINDER = '\n\n(Reminder to the DM, not from the player: this message is OOC. ' +
+  'If it asks the story to go on, or says they wait, watch or listen for what ' +
+  'happens or what an NPC says, that is rule 22a: narrate the scene now, in full, ' +
+  'with the NPCs speaking. Otherwise it is rule 22b: answer briefly.)';
+export const oocReminder = prompt => (OOC_MARK.test(prompt) ? OOC_REMINDER : '');
+
 /**
  * Runs one Dungeon Master turn for a player message and persists both
  * sides of the exchange (except in the test channel).
@@ -165,7 +175,7 @@ export async function playTurn({
   try {
     const raw = await generateDmReply({
       instructions,
-      input: [...history, { role: 'user', content: playerInput }],
+      input: [...history, { role: 'user', content: playerInput + oocReminder(prompt) }],
       playerNames: characterNames
     });
     // XP tags first, so a reply that is only tags still gets the scene fallback.

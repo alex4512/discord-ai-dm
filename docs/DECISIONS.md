@@ -946,3 +946,12 @@ If B feels thin after a session, change `OPENAI_MODEL=gpt-5.6-terra` and add its
 - Rules 4 and 5 now describe the whole-channel history (D-035).
 
 **Checked.** Real replays of the three stuck turns (rolled back, about $0.10): the merchant names an amount at once; "OOC continue" and "we are waiting to hear him" both get the NPC's full account in that reply.
+
+**Addendum, same day: narrate until the players have something to do.** The owner still had to send "ooc go" three times to get one conversation told. Added:
+
+- A pacing rule: keep narrating until an NPC addresses a player character and waits, a danger demands a reaction, a real choice is open, or a roll is needed; never stop mid-conversation between NPCs or mid-explanation.
+- Rule 22 rewritten to classify first: (a) the players want the story to go on (go, continue, we wait/watch/listen, the scene is stuck): narrate in full, NPCs speaking; (b) anything else: brief answer, nothing happens.
+- An OOC message gets a one-line reminder of 22a/22b appended to the model input only (never stored or shown), because the rule alone, deep in long instructions, did not stop "ooc we're waiting to see what happened" from being answered with an acknowledgement.
+- `TURN_REASONING` (none|low|medium, empty = model default) sets the reasoning effort of play turns; left empty.
+
+**Checked.** Real replays (rolled back, about $0.35 in all): with rule and reminder, both "ooc we're waiting..." turns that had failed get the NPC's full account (400–680 output tokens); "ooc go" mid-conversation plays the whole conversation out. Reasoning `low` was tried on the same turns: it used about 10 reasoning tokens a turn and gave no clear difference, so it stays off.
