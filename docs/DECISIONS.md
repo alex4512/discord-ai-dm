@@ -955,3 +955,17 @@ If B feels thin after a session, change `OPENAI_MODEL=gpt-5.6-terra` and add its
 - `TURN_REASONING` (none|low|medium, empty = model default) sets the reasoning effort of play turns; left empty.
 
 **Checked.** Real replays (rolled back, about $0.35 in all): with rule and reminder, both "ooc we're waiting..." turns that had failed get the NPC's full account (400–680 output tokens); "ooc go" mid-conversation plays the whole conversation out. Reasoning `low` was tried on the same turns: it used about 10 reasoning tokens a turn and gave no clear difference, so it stays off.
+
+## D-037: Play turns on gpt-5.4 (trial)
+
+**Date:** 2026-11-16 · **Status:** trial (owner) · **Code:** `OPENAI_MODEL` and `MONTHLY_BUDGET_USD` in `.env`; anti-drip pacing rule in `src/ai/prompts.js`
+
+**Context.** After D-035 and D-036, gpt-5.4-mini still drip-fed an NPC conversation: the same three facts repeated over four replies, each ending "she waits" / "that isn't the whole story", so the owner had to send "go" again and again. A pacing rule against drip-feeding (tell what they know in one go, decide it if not established, never repeat told facts, finish the exchange and move to what it leads to) helped mini only a little.
+
+**Decision.** Turns (and maps, image prompts, /story, which share `OPENAI_MODEL`) use gpt-5.4 on trial. Monthly budget warning raised from $15 to $30.
+
+**Compared** on the same stalled turn, same prompt and history: mini repeated the known facts and ended on another question (~400 output tokens, $0.044 uncached); gpt-5.4 told the whole account, tied in the note, the amulet and the NPCs present, reached a conclusion with a lead and a real choice (~1,100 tokens, $0.158 uncached).
+
+**Cost.** About $0.03 per turn with the cache (about 5x mini), about $3 per 100-turn session.
+
+**Undo.** `OPENAI_MODEL=gpt-5.4-mini` in `.env` and restart.
