@@ -97,8 +97,8 @@ function loadConfig(env = process.env) {
     }),
 
     history: Object.freeze({
-      maxChars: parsePositiveInt(env, 'HISTORY_MAX_CHARS', 18000),
-      fetchLimit: 100
+      maxChars: parsePositiveInt(env, 'HISTORY_MAX_CHARS', 250000),
+      fetchLimit: 5000
     }),
 
     postgres: Object.freeze({

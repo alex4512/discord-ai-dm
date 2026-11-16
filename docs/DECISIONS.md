@@ -913,3 +913,21 @@ If B feels thin after a session, change `OPENAI_MODEL=gpt-5.6-terra` and add its
 **Undo.** Restore `backups/dnd_campaign_pre-reset_20261110-185037.dump` with `pg_restore --clean` (see OPERATIONS.md), with the bot stopped.
 
 **Checked.** Dry run in a rolled-back transaction first; after applying, mocked turns in all three channels: Sword Coast setting, no old names, each private channel sees only its own backstory, main sees none.
+
+## D-035: Turns see the whole channel history
+
+**Date:** 2026-11-16 · **Status:** done (owner) · **Code:** `src/services/dungeonMasterService.js`, `src/config.js`, narration rule in `src/ai/prompts.js`
+
+**Context.** After a week of play the owner found replies short, repetitive and forgetful of details from the same quest. Measured: a turn saw only messages since the last save, at most 18,000 characters (about the last 25–30 exchanges, often fewer), and everything older only as summaries (37 one-line chronicle events for 179 exchanges). Turns used about 10k input tokens of a model that takes several hundred thousand; replies averaged 177 output tokens because the narration rule asked for "two or three short paragraphs". Prompt caching was not a cause: it reuses the processed prompt prefix, never a previous answer.
+
+**Decision.**
+
+- **History:** a turn gets every message of its channel on the current timeline, newest kept first, up to `HISTORY_MAX_CHARS` = 250,000 characters (fetch limit 5,000 messages). A save no longer cuts it. A private channel also gets the main transcript, up to half of that (the block is renamed SHARED SCENE). A rollback still starts a new timeline, so abandoned play never returns.
+- **Narration:** three to five full paragraphs for new scenes, important fights, conversations and discoveries, with NPC dialogue, details from earlier in the history woven in, and varied openings and imagery; one or two paragraphs for quick exchanges. `MAX_OUTPUT_TOKENS` raised from 1200 to 2500 so long Greek replies are not cut.
+- **Unchanged:** saves, chronicle, chapters, per-character knowledge and who sees what. Saves are now for structure (`/story`, `/npc`, chapters), not for the DM's memory; the pinned rules say to save once per session.
+
+**Cost.** About $0.003 per turn before; about $0.006 at the current campaign size (110k characters of main history), growing slowly with play since most of the history is cached input.
+
+**Undo.** Set `HISTORY_MAX_CHARS=18000` and `MAX_OUTPUT_TOKENS=1200` in `.env` and restart (history would still not be cut at saves; revert the commit for that).
+
+**Checked.** Mocked turns (no OpenAI call, rolled back): main gets all 358 messages (110k characters, was 18k); Kraavok's private channel gets the whole main transcript and no other private channel; reply cap 2500; no messages stored.

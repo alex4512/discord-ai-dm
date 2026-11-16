@@ -36,14 +36,20 @@ finding a hidden compartment or trap mechanism, working out how something
 works or what happened. Insight reads a person. If no roll is needed (no
 real chance of failure, or nothing at stake), say so and narrate.
 
-Narration style: narrate like a tabletop DM reading aloud. When the scene
-changes or something new comes into view, give two or three short
-paragraphs: concrete sensory detail (light, sound, smell, texture,
-temperature), what the NPCs present are doing and how they look and speak,
-and one or two details worth interacting with. For a quick exchange (a
-short answer, a simple action) a few sentences are enough, and OOC answers
-stay brief. Don't pad or repeat what was already described, and never
-decide for the players.
+Narration style: narrate like a tabletop DM reading aloud, with depth.
+When the scene changes, something new comes into view, a fight or a
+conversation with an NPC matters, or a discovery is made, write three to
+five full paragraphs: concrete sensory detail (light, sound, smell,
+texture, temperature), what the NPCs present are doing, how they look and
+speak (give them real lines of dialogue with their own voice), and two or
+three specific details worth interacting with. Weave in what happened
+earlier in the conversation: names, promises, wounds, items, clues and
+places from the history come back naturally when they are relevant. Vary
+your openings, imagery and sentence rhythm from reply to reply; never
+reuse a description or a stock phrase you already used. For a quick
+exchange (a short answer, a simple action) one or two paragraphs are
+enough, and OOC answers stay brief. Don't pad, and never decide for the
+players.
 
 Pacing: keep the game moving like a confident DM.
 - Never end with a menu of options ("you can do X or Y", "if you want,
@@ -561,8 +567,8 @@ export function buildDmInstructions({
 
   if (recentSharedScene) {
     blocks.push(
-      'RECENT SHARED SCENE (main adventure since the last checkpoint, ' +
-      'oldest first; it is canon and newer than the checkpoint. This ' +
+      'SHARED SCENE (the main adventure transcript, oldest first; it is ' +
+      'canon, and where it is newer than the checkpoint it wins. This ' +
       'character knows what happened where they were present):\n' +
       recentSharedScene
     );

@@ -46,9 +46,9 @@ export function extractSceneTag(text) {
  * sides of the exchange (except in the test channel).
  *
  * The prompt contains only what the channel's audience may see (D-004).
- * History starts at the checkpoint boundary in every channel; everything
- * before it is summarized in the shared checkpoint, the character's
- * knowledge record and the DM notes.
+ * History is the whole channel on the current timeline (D-035), capped by
+ * HISTORY_MAX_CHARS; the checkpoint, knowledge records, DM notes and
+ * chronicle add structure and cover anything older than the cap.
  */
 export async function playTurn({
   guildId,
@@ -63,23 +63,23 @@ export async function playTurn({
   const testMode = audience.kind === 'dm';
   const state = await getState(guildId);
 
+  // The whole channel on this timeline, not only play since the last save
+  // (D-035): verbatim history is the best memory and fits the model easily.
   const [history, sharedHistory, legacyCheckpoint, registered] = await Promise.all([
     testMode
       ? []
       : getHistory({
           guildId,
           channelId,
-          timelineId: state.timeline_id,
-          afterSeq: state.boundary_seq
+          timelineId: state.timeline_id
         }),
-    // A private channel also sees main-adventure play since the last save
-    // (D-010): it is public to every player and newer than the checkpoint.
+    // A private channel also sees main-adventure play (D-010): it is public
+    // to every player.
     audience.kind === 'character'
       ? getHistory({
           guildId,
           channelId: config.channels.main,
           timelineId: state.timeline_id,
-          afterSeq: state.boundary_seq,
           maxChars: Math.floor(config.history.maxChars / 2)
         })
       : [],

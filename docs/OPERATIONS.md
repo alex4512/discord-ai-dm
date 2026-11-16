@@ -94,8 +94,10 @@ Levers, cheapest first:
   `CHECKPOINT_MODEL` (saves) in `.env`, then restart.
 - **Saves:** each save makes about 5 large calls. Save at the end of a
   session or a chapter, not after every scene.
-- **History:** `HISTORY_MAX_CHARS` (per channel, since the last save). A
-  save also resets it.
+- **History:** `HISTORY_MAX_CHARS` (250000): turns see the whole channel
+  on the current timeline up to this many characters; a save no longer
+  resets it (D-035). A private channel also sees main, up to half of it.
+  `MAX_OUTPUT_TOKENS` (2500) caps a reply.
 - **Images:** `IMAGE_DAILY_LIMIT`.
 - **Testing:** `#dm-testing` turns cost the same as real ones.
 
